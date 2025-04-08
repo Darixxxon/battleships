@@ -173,10 +173,20 @@ def choose_layout():
         screen.blit(surface_create(300, 75), surface_create(300, 75).get_rect(center=(1100, 70)))
         screen.blit(text_create("YOUR SHIPS"), text_create("YOUR SHIPS").get_rect(center=(1100, 70)))
             
-        screen.blit(surface_create(70, 280, color=(0,0,0)), surface_create(70, 280, color=(0,0,0)).get_rect(topleft=(850, 150)))
+        screen.blit(surface_create(70, 280, color=(128, 128, 128)), surface_create(70, 280, color=(128, 128, 128)).get_rect(topleft=(850, 150)))
         
-        screen.blit(surface_create(70, 210, color=(0,0,0)), surface_create(70, 210, color=(0,0,0)).get_rect(topleft=(950, 150)))
-        screen.blit(surface_create(75, 210, color=(0,0,0)), surface_create(70, 210, color=(0,0,0)).get_rect(topleft=(1050, 150)))
+        screen.blit(surface_create(70, 210, color=(128, 128, 128)), surface_create(70, 210, color=(128, 128, 128)).get_rect(topleft=(950, 150)))
+        screen.blit(surface_create(70, 210, color=(128, 128, 128)), surface_create(70, 210, color=(128, 128, 128)).get_rect(topleft=(1050, 150)))
+        
+        screen.blit(surface_create(70, 140, color=(128, 128, 128)), surface_create(70, 140, color=(128, 128, 128)).get_rect(topleft=(1150, 150)))
+        screen.blit(surface_create(70, 140, color=(128, 128, 128)), surface_create(70, 140, color=(128, 128, 128)).get_rect(topleft=(1150, 350)))
+        screen.blit(surface_create(70, 140, color=(128, 128, 128)), surface_create(70, 140, color=(128, 128, 128)).get_rect(topleft=(1150, 550)))
+        
+        screen.blit(surface_create(70, 70, color=(128, 128, 128)), surface_create(70, 70, color=(128, 128, 128)).get_rect(topleft=(1250, 150)))
+        screen.blit(surface_create(70, 70, color=(128, 128, 128)), surface_create(70, 70, color=(128, 128, 128)).get_rect(topleft=(1250, 250)))
+        screen.blit(surface_create(70, 70, color=(128, 128, 128)), surface_create(70, 70, color=(128, 128, 128)).get_rect(topleft=(1250, 350)))
+        screen.blit(surface_create(70, 70, color=(128, 128, 128)), surface_create(70, 70, color=(128, 128, 128)).get_rect(topleft=(1250, 450)))
+        
         
         pygame.display.update()
         clock.tick(20)  
