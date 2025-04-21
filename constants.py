@@ -1,0 +1,33 @@
+BACKGROUND_COLOR = "black"
+
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
+
+NUMBER_OF_RECTS = 10
+
+LEFT_MARGIN = 100
+TOP_MARGIN = 100
+
+RECT_HEIGHT = (SCREEN_HEIGHT - TOP_MARGIN) // NUMBER_OF_RECTS // 1.5
+RECT_WIDTH = RECT_HEIGHT
+
+DISTANCE_BETWEEN_BOARDS = 200
+
+ALPHABET = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"]
+
+NUMBER_OF_DESTORYES = 3
+NUMBER_OF_SUBMARINES = 2
+NUMBER_OF_CRUISERS = 1
+NUMBER_OF_BATTLESHIPS = 1
+NUMBER_OF_CARRIERS = 1
+TOTAL_SHIPS = NUMBER_OF_CRUISERS + NUMBER_OF_BATTLESHIPS + NUMBER_OF_CARRIERS + NUMBER_OF_DESTORYES + NUMBER_OF_SUBMARINES
+
+# key - ships name
+# values - color, ships height, ships width, id on occupancy table
+SHIPS = {
+    'destroyer': ["purple", RECT_HEIGHT * 2 + 1, RECT_WIDTH, 1],
+    'submarine': ["blue", RECT_HEIGHT * 3 + 2, RECT_WIDTH, 2],
+    'cruiser': ["cyan", RECT_HEIGHT * 3 + 2, RECT_WIDTH, 3],
+    'battleship': ["green", RECT_HEIGHT * 4 + 3, RECT_WIDTH, 4],
+    'carrier': ["yellow", RECT_HEIGHT * 5 + 4, RECT_WIDTH, 5]
+}
