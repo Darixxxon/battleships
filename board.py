@@ -1,7 +1,7 @@
 import pygame
 import configparser
 
-from constants import BACKGROUND_COLOR, TOTAL_SHIPS, NUMBER_OF_DESTORYES, NUMBER_OF_SUBMARINES, NUMBER_OF_BATTLESHIPS, NUMBER_OF_CARRIERS, NUMBER_OF_CRUISERS, SHIPS, SCREEN_HEIGHT, SCREEN_WIDTH, RECT_WIDTH, RECT_HEIGHT, NUMBER_OF_RECTS, LEFT_MARGIN, TOP_MARGIN, DISTANCE_BETWEEN_BOARDS, ALPHABET
+from constants import CONFIRM_BUTTON_X, CONFIRM_BUTTON_Y, BACKGROUND_COLOR, TOTAL_SHIPS, NUMBER_OF_DESTORYES, NUMBER_OF_SUBMARINES, NUMBER_OF_BATTLESHIPS, NUMBER_OF_CARRIERS, NUMBER_OF_CRUISERS, SHIPS, SCREEN_HEIGHT, SCREEN_WIDTH, RECT_WIDTH, RECT_HEIGHT, NUMBER_OF_RECTS, LEFT_MARGIN, TOP_MARGIN, DISTANCE_BETWEEN_BOARDS, ALPHABET
 
 import client
 import server
@@ -217,6 +217,12 @@ class Board():
         self.occupancy_grid = [[0 for _ in range(NUMBER_OF_RECTS)] 
                             for _ in range(NUMBER_OF_RECTS)]
         self.all_ships_placed = False
+        self.confirm_button = None
+        self.game_stage = "placing"
+        self.placed_ships_coordinates = []
+        
+    def get_game_stage(self):
+        return self.game_stage
 
     # Create a board at which player can place his/her ships
     def create_positioning_board(self):
@@ -445,6 +451,7 @@ class Board():
                             self.placed_ships.append(moving_ship)
                             self.ships_to_place.pop(self.active_box)
                             self.add_occupied()
+                            self.check_if_all_ships_were_placed()
                         else:
                             # Return to last valid position if placement is invalid
                             ship_rect.topleft = self.last_valid_position
@@ -479,6 +486,7 @@ class Board():
                             self.placed_ships.append(moving_ship)
                             self.ships_to_place.pop(self.active_box)
                             self.add_occupied()
+                            self.check_if_all_ships_were_placed()
                         else:
                             # Return to last valid position if placement is invalid
                             ship_rect.topleft = self.last_valid_position
@@ -522,7 +530,6 @@ class Board():
         else:
             ship_height_squares = 1
             ship_width_squares = int(latest_ship.width // RECT_WIDTH)
-        
         # Mark ship squares and their neighbors
         for i in range(-1, ship_height_squares + 1):
             for j in range(-1, ship_width_squares + 1):
@@ -542,13 +549,38 @@ class Board():
     # Check if all ships that are supposed to be placed were placed    
     def check_if_all_ships_were_placed(self):
         if TOTAL_SHIPS == len(self.placed_ships):
-            return True
-        return False
-    
-      
+            self.all_ships_placed = True
+        
+    # Function to show the button that confirms the placement of ships 
     def show_confirm_button(self):
         if self.all_ships_placed:
-            return  
+            button = pygame.rect.Rect(CONFIRM_BUTTON_X,  CONFIRM_BUTTON_Y, RECT_WIDTH * 3, RECT_HEIGHT * 1.5)
+            pygame.draw.rect(screen, "gray", button)
+            
+            text_x = SCREEN_WIDTH // 2 - RECT_WIDTH * 1.5
+            text_y = TOP_MARGIN + RECT_HEIGHT * NUMBER_OF_RECTS
+            text_surface = text_create("CONFIRM", 24, "black")
+            screen.blit(text_surface, (text_x, text_y))
+            
+            self.confirm_button = button
+            
+            pygame.display.flip()  
+       
+    # Detect if confirm button was pressed    
+    def confirm_button_pressed(self, event):
+        if self.confirm_button is not None:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    if self.confirm_button.collidepoint(event.pos):
+                        print("Confirm button pressed")
+                        for ship in self.placed_ships:
+                            ship_coordinates = self.determine_square(ship[0].x, ship[0].y)
+                            self.placed_ships_coordinates.append((ship, ship_coordinates))
+                        print(self.placed_ships_coordinates)
+                        self.game_stage = "battle"
+                    return
+                
+        return
         
     # Check what is the id of the ship, so it can be placed in the occupancy grid        
     def determine_ship_id(self, color):
@@ -572,6 +604,8 @@ class Board():
 
     # Function to create two basic boards with letters and numbers representing coordinates written next to them      
     def create_playing_board(self):
+        screen.fill(BACKGROUND_COLOR)
+        self.player_squares_left_top_corners = []
         # Create board for first player
         for i in range(NUMBER_OF_RECTS):
             letter_x = LEFT_MARGIN - 30
@@ -624,12 +658,7 @@ class Board():
     # 5 - carrier
     def create_array_with_player_ships(self):
         self.player_board = [[0] * NUMBER_OF_RECTS for i in range(NUMBER_OF_RECTS)]
-        self.player_board[0][1] = 1
-        self.player_board[1][1] = 1
-        self.player_board[4][1] = 2
-        self.player_board[4][2] = 3
-        self.player_board[5][5] = 4
-        self.player_board[5][6] = 5
+
         
     def create_array_with_enemy_ships(self):
         self.enemy_board = [[0] * NUMBER_OF_RECTS for i in range(NUMBER_OF_RECTS)]
@@ -640,30 +669,25 @@ class Board():
         self.enemy_board[3][1] = 4
         self.enemy_board[2][2] = 5
 
-    # Function to color squares that contain ships with ships' coressponding color
-    def draw_ships(self):
-        for i in range(NUMBER_OF_RECTS):
-            for j in range(NUMBER_OF_RECTS):
-                # Check whether there is a ship on this square on player board
-                if self.player_board[i][j] != 0:
-                    # Determine color of the ship
-                    color = SHIPS_COLORS[self.player_board[i][j] - 1]
-                    rect_x = LEFT_MARGIN + j * RECT_WIDTH + j
-                    rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
-                    rect = pygame.Rect(rect_x, rect_y , RECT_WIDTH, RECT_HEIGHT)
-                    pygame.draw.rect(screen, color, rect)
-                    self.board_squares.append(rect)
+    def determine_coordinates(self, x, y):
+        print(self.player_squares_left_top_corners[y][x][0])
+        return self.player_squares_left_top_corners[x][y][1]
 
-                if self.enemy_board[i][j] != 0:
-                    color = SHIPS_COLORS[self.enemy_board[i][j] - 1]
-                    rect_x = LEFT_MARGIN + j * RECT_WIDTH + j + DISTANCE_BETWEEN_BOARDS + RECT_WIDTH * NUMBER_OF_RECTS
-                    rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
-                    rect = pygame.Rect(rect_x, rect_y , RECT_WIDTH, RECT_HEIGHT)
-                    pygame.draw.rect(screen, color, rect)
-                    self.board_squares.append(rect)
+
+    # Function to color squares that contain ships with ships' coressponding color
+    def draw_player_ships(self):
+
+        for ship in self.placed_ships_coordinates:
+            rect = ship[0][0]
+            ship_color = ship[0][1]
+            ship_coordinates = ship[1]
+            
+            new_position = self.determine_coordinates(ship_coordinates[0], ship_coordinates[1])
+            new_rect = pygame.rect.Rect(new_position[0],new_position[1], rect.width, rect.height)
+            
+            pygame.draw.rect(screen, ship_color, new_rect)
 
         pygame.display.flip()
-        return
     
     def select_square(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
