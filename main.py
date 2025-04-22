@@ -23,10 +23,16 @@ if __name__ == "__main__":
                     running = False
             if event.type == pygame.QUIT:
                 running = False
-            #board.draw_ships()
-            board.draw_ships_to_place()
-            board.place_ships(event)
+            if board.get_game_stage() == "placing":
+                board.draw_ships_to_place()
+                board.place_ships(event)
+                board.show_confirm_button()
+                board.confirm_button_pressed(event)
+            elif board.get_game_stage() == "battle":
+                board.create_playing_board()
+                board.draw_player_ships()
             board.select_square(event)
+            
             #board.move_ship(event)
             pygame.display.flip()
     pygame.quit()
