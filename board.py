@@ -1,7 +1,9 @@
 import pygame
 import configparser
 
-from constants import CONFIRM_BUTTON_X, CONFIRM_BUTTON_Y, BACKGROUND_COLOR, TOTAL_SHIPS, NUMBER_OF_DESTORYES, NUMBER_OF_SUBMARINES, NUMBER_OF_BATTLESHIPS, NUMBER_OF_CARRIERS, NUMBER_OF_CRUISERS, SHIPS, SCREEN_HEIGHT, SCREEN_WIDTH, RECT_WIDTH, RECT_HEIGHT, NUMBER_OF_RECTS, LEFT_MARGIN, TOP_MARGIN, DISTANCE_BETWEEN_BOARDS, ALPHABET
+import random
+
+from constants import ATTACK_BUTTON_X, ATTACK_BUTTON_Y, CONFIRM_BUTTON_X, CONFIRM_BUTTON_Y, BACKGROUND_COLOR, TOTAL_SHIPS, NUMBER_OF_DESTORYES, NUMBER_OF_SUBMARINES, NUMBER_OF_BATTLESHIPS, NUMBER_OF_CARRIERS, NUMBER_OF_CRUISERS, SHIPS, SCREEN_HEIGHT, SCREEN_WIDTH, RECT_WIDTH, RECT_HEIGHT, NUMBER_OF_RECTS, LEFT_MARGIN, TOP_MARGIN, DISTANCE_BETWEEN_BOARDS, ALPHABET
 
 import client
 import server
@@ -195,10 +197,7 @@ def choose_layout():
 class Board():
 
     def __init__(self):
-        self.player_board = []
-        self.enemy_board = []
         self.whose_turn = 0
-        self.board_squares = []
         self.player_squares_left_top_corners = []
         self.row = []
         self.enemy_squares_left_top_corners = []
@@ -207,7 +206,7 @@ class Board():
         self.pickup_height = 0
         self.pickup_segment = 0
         self.ships = {}
-        self.placing_ships = True
+        self.placing_ships = False  # Do zmiany na True jak bedziemy odpalac ukladanie
         self.ships_to_place = []
         self.placing_squares_left_top_corners = []
         self.placed_ships = []
@@ -218,8 +217,21 @@ class Board():
                             for _ in range(NUMBER_OF_RECTS)]
         self.all_ships_placed = False
         self.confirm_button = None
-        self.game_stage = "placing"
+        self.attack_button = None
+        self.game_stage = "battle" # Do zmiany na "placing" albo "menu"
         self.placed_ships_coordinates = []
+        self.sunken_ships = []
+        self.attacked_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
+                            for _ in range(NUMBER_OF_RECTS)]
+        self.chosen_tile = ()
+        self.enemy_squares_rects = []
+        self.enemy_ships = [[random.randint(0, 1) for _ in range(NUMBER_OF_RECTS)] 
+                       for _ in range(NUMBER_OF_RECTS)]
+        self.enemy_ships[0][0] = 1
+        self.enemy_ships[0][1] = 1
+        self.enemy_ships[1][0] = 0
+        self.selected_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
+                            for _ in range(NUMBER_OF_RECTS)]
         
     def get_game_stage(self):
         return self.game_stage
@@ -332,12 +344,15 @@ class Board():
         if self.placing_ships: # Assign different coordinate arrays based on the stage of the game
             squares_left_top_corners = self.placing_squares_left_top_corners
         else:
-            squares_left_top_corners = self.player_squares_left_top_corners
+            squares_left_top_corners = self.enemy_squares_left_top_corners
              
         if (not (self.side_bounds[0] <= x < self.side_bounds[1])) and (not (self.upper_and_lower_bounds[0] <= y < self.upper_and_lower_bounds[1])): 
             # Check if the square is within bounds
             return -1 
-           
+          
+        if len(squares_left_top_corners) < NUMBER_OF_RECTS:
+            return -1  
+          
         if not found_height or not found_width:
             for i in range(NUMBER_OF_RECTS):
                 top_border = squares_left_top_corners[i][0][1][1]
@@ -578,6 +593,9 @@ class Board():
                             self.placed_ships_coordinates.append((ship, ship_coordinates))
                         print(self.placed_ships_coordinates)
                         self.game_stage = "battle"
+                        self.placing_ships = False
+                        screen.fill(BACKGROUND_COLOR)
+
                     return
                 
         return
@@ -604,8 +622,9 @@ class Board():
 
     # Function to create two basic boards with letters and numbers representing coordinates written next to them      
     def create_playing_board(self):
-        screen.fill(BACKGROUND_COLOR)
         self.player_squares_left_top_corners = []
+        self.upper_and_lower_bounds = []
+        self.side_bounds = []
         # Create board for first player
         for i in range(NUMBER_OF_RECTS):
             letter_x = LEFT_MARGIN - 30
@@ -626,11 +645,22 @@ class Board():
                     number_y = TOP_MARGIN - 40
                     number_surface = text_create(str(j+1), 24, "white")
                     screen.blit(number_surface, (number_x, number_y))
+                
+                # Add left bound and top bound to the bounds arrays    
+                if (i == 0 and j == 0):
+                    self.upper_and_lower_bounds.append(rect_y)
+                    self.side_bounds.append(rect_x)
+                # Add right bound and lower bound to the bounds arrays
+                if (i == NUMBER_OF_RECTS - 1 and j == NUMBER_OF_RECTS - 1):
+                    self.upper_and_lower_bounds.append(rect_y + RECT_HEIGHT)
+                    self.side_bounds.append(rect_x + RECT_WIDTH)
             self.player_squares_left_top_corners.append(self.row)
-
+            
 
         # Create board for second player
         for i in range(NUMBER_OF_RECTS):
+            self.row = []
+            self.rect_row = []
             letter_x = LEFT_MARGIN - 30 + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH
             letter_y = TOP_MARGIN + i * (RECT_HEIGHT) + RECT_HEIGHT // 2
             letter_surface = text_create(ALPHABET[i], 24, "white")
@@ -639,42 +669,34 @@ class Board():
                 rect_x = LEFT_MARGIN + j * RECT_WIDTH + j + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH
                 rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
                 rect = pygame.Rect(rect_x, rect_y , RECT_WIDTH, RECT_HEIGHT)
-                pygame.draw.rect(screen, "white", rect)
+                self.determine_enemy_square_color(rect_x, rect_y)
+                self.row.append([(i, j), (rect_x, rect_y)])
+                if len(self.enemy_squares_rects) < NUMBER_OF_RECTS ** 2:
+                    self.enemy_squares_rects.append(rect)
 
                 if (i == 0):
                     number_x = LEFT_MARGIN + j * (RECT_WIDTH + 1) + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH + RECT_WIDTH // 2
                     number_y = TOP_MARGIN - 40
                     number_surface = text_create(str(j+1), 24, "white")
                     screen.blit(number_surface, (number_x, number_y))
+            if len(self.enemy_squares_left_top_corners) < NUMBER_OF_RECTS:
+                self.enemy_squares_left_top_corners.append(self.row)
+
+        turn_x = SCREEN_WIDTH // 2 - 100
+        turn_y = TOP_MARGIN - 75
+        if self.whose_turn == 0:
+            turn_surface = text_create("Your turn", 36, "white")
+        else:
+            turn_surface = text_create("Enemy turn", 36, "white")
+        screen.blit(turn_surface, (turn_x, turn_y))
 
         pygame.display.flip()
-        
-    # Create simple 2D array representing player board
-    # 0 - empty cell
-    # 1 - destoryer
-    # 2 - submarine
-    # 3 - cruiser
-    # 4 - battleship
-    # 5 - carrier
-    def create_array_with_player_ships(self):
-        self.player_board = [[0] * NUMBER_OF_RECTS for i in range(NUMBER_OF_RECTS)]
 
-        
-    def create_array_with_enemy_ships(self):
-        self.enemy_board = [[0] * NUMBER_OF_RECTS for i in range(NUMBER_OF_RECTS)]
-        self.enemy_board[5][3] = 1
-        self.enemy_board[2][6] = 1
-        self.enemy_board[6][2] = 2
-        self.enemy_board[9][9] = 3
-        self.enemy_board[3][1] = 4
-        self.enemy_board[2][2] = 5
-
+    # Determine at which cooridantes is the square located
     def determine_coordinates(self, x, y):
-        print(self.player_squares_left_top_corners[y][x][0])
         return self.player_squares_left_top_corners[x][y][1]
 
-
-    # Function to color squares that contain ships with ships' coressponding color
+    # Function to draw ships to the player board
     def draw_player_ships(self):
 
         for ship in self.placed_ships_coordinates:
@@ -689,43 +711,90 @@ class Board():
 
         pygame.display.flip()
     
+    # Function to determine what color should be enemy square colored
+    def determine_enemy_square_color(self, x, y):
+        which_square = self.determine_square(x, y)
+        if which_square == -1:
+            return "white"
+        square_x, square_y = which_square[0], which_square[1]
+        
+        # Draw the base white square
+        rect = pygame.Rect(x, y, RECT_WIDTH, RECT_HEIGHT)
+        pygame.draw.rect(screen, "white", rect)
+        
+        # If selected, highlight with red border
+        if self.selected_tiles[square_x][square_y]:
+            pygame.draw.rect(screen, "red", rect, 2)  # 2 is the border width
+        
+        # Draw X for miss (attacked_tiles == 1)
+        if self.attacked_tiles[square_x][square_y] == 1:
+            # Draw an X
+            start_pos1 = (x + 5, y + 5)
+            end_pos1 = (x + RECT_WIDTH - 5, y + RECT_HEIGHT - 5)
+            start_pos2 = (x + RECT_WIDTH - 5, y + 5)
+            end_pos2 = (x + 5, y + RECT_HEIGHT - 5)
+            pygame.draw.line(screen, "red", start_pos1, end_pos1, 2)
+            pygame.draw.line(screen, "red", start_pos2, end_pos2, 2)
+        
+        # Draw circle for hit (attacked_tiles == 2)
+        elif self.attacked_tiles[square_x][square_y] == 2:
+            center = (x + RECT_WIDTH // 2, y + RECT_HEIGHT // 2)
+            radius = RECT_WIDTH // 2 - 5
+            pygame.draw.circle(screen, "red", center, radius, 2)
+        
+        return None  # We're doing the drawing here, so no need to return a color
+    
+    # Function to select squares on enemy board
     def select_square(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                for num, box in enumerate(self.board_squares):
-                    if box.collidepoint(event.pos):
-                        self.active_box = num
-                        x,y = self.determine_square(self.board_squares[self.active_box].x, self.board_squares[self.active_box].y)
-                        self.player_board[x][y] = "red"
-                        self.draw_ships()
-     
-    def make_turn(self):
+        if self.whose_turn == 0:
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    for box in self.enemy_squares_rects:
+                        if box.collidepoint(event.pos):
+                            which_square = self.determine_square(event.pos[0], event.pos[1])
+                            square_x, square_y = which_square[0], which_square[1]
+                            self.selected_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
+                                for _ in range(NUMBER_OF_RECTS)]
+                            self.selected_tiles[square_x][square_y] = 1
 
+    # Function to show the button that confirms the placement of ships 
+    def show_attack_button(self):
+        if self.whose_turn == 0:
+            button = pygame.rect.Rect(ATTACK_BUTTON_X, ATTACK_BUTTON_Y, RECT_WIDTH * 3, RECT_HEIGHT * 1.5)
+            pygame.draw.rect(screen, "gray", button)
+            
+            text_surface = text_create("ATTACK", 24, "black")
+            screen.blit(text_surface, (ATTACK_BUTTON_X, ATTACK_BUTTON_Y))
+            
+            self.attack_button = button
+            
+            pygame.display.flip()  
+     
+    # Function to check if attack button was pressed 
+    def attack_button_pressed(self, event):
+        if self.whose_turn == 0:
+            if self.attack_button is not None:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        if self.attack_button.collidepoint(event.pos):
+                            print("Attack button pressed")
+                            screen.fill(BACKGROUND_COLOR)
+                            for i in range(NUMBER_OF_RECTS):
+                                for j in range(NUMBER_OF_RECTS):
+                                    if self.selected_tiles[i][j] == 1:
+                                        if self.enemy_ships[i][j] == 1:
+                                            self.attacked_tiles[i][j] = 2
+                                        else:
+                                            self.attacked_tiles[i][j] = 1
+                            self.selected_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
+                                for _ in range(NUMBER_OF_RECTS)]
+                            self.make_turn()
+
+                        return
+                    
+            return
+     
+    # Switch turns 
+    def make_turn(self):
         self.whose_turn = 0 if self.whose_turn == 1 else 1 
         return
-
-    def move_ship(self, event):
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                for num, box in enumerate(self.board_squares):
-                    if box.collidepoint(event.pos):
-                        self.active_box = num
-                        square = self.determine_square(self.board_squares[self.active_box].x, self.board_squares[self.active_box].y)
-                        if square is not -1:
-                            x,y = square
-                        self.picked_up_color = self.player_board[x][y]
-
-        if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1:
-                square = self.determine_square(self.board_squares[self.active_box].x, self.board_squares[self.active_box].y)
-                if square is not -1:
-                    x,y = square                
-
-                self.active_box = None
-
-        if event.type == pygame.MOUSEMOTION:
-            if self.active_box != None:
-                self.board_squares[self.active_box].move_ip(event.rel)
-                #print("Box " + str(self.active_box) + " was moved")
-                #print(self.board_squares[self.active_box].x, self.board_squares[self.active_box].y)
-            
