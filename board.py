@@ -5,195 +5,6 @@ import random
 
 from constants import ATTACK_BUTTON_X, ATTACK_BUTTON_Y, CONFIRM_BUTTON_X, CONFIRM_BUTTON_Y, BACKGROUND_COLOR, TOTAL_SHIPS, NUMBER_OF_DESTORYES, NUMBER_OF_SUBMARINES, NUMBER_OF_BATTLESHIPS, NUMBER_OF_CARRIERS, NUMBER_OF_CRUISERS, SHIPS, SCREEN_HEIGHT, SCREEN_WIDTH, RECT_WIDTH, RECT_HEIGHT, NUMBER_OF_RECTS, LEFT_MARGIN, TOP_MARGIN, DISTANCE_BETWEEN_BOARDS, ALPHABET
 
-import client
-import server
-
-pygame.init()
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Battle ships")
-clock = pygame.time.Clock()
-config = configparser.ConfigParser()
-config.read("config.ini")
-
-def surface_create(w, h, color=(255, 255, 255)):
-    
-    surface = pygame.Surface((w, h))
-    surface.fill(color)
-    return surface
-
-def text_create(text, font_size=36, color=(0, 0, 0)):
-    font = pygame.font.SysFont('Arial', font_size)
-    return font.render(text, True, color) 
-
-def rect_create(x, y, w, h, color=(255, 255, 255)):
-    
-    rect = pygame.Rect(x, y, w, h)
-    pygame.draw.rect(screen, color, rect)
-    return rect
-
-def start_menu():
-    background = pygame.image.load("background.jpg")
-    server_host_active = False
-    server_port_active = False
-    client_host_active = False
-    client_port_active = False
-    server_host_text = ""
-    server_port_text = ""
-    client_host_text = ""
-    client_port_text = ""
-
-    title_surface = surface_create(300, 75)
-    server_host_surface = surface_create(300, 75)
-    server_port_surface = surface_create(300, 75)
-    server_choose_surface = surface_create(200, 75)
-    
-    client_host_surface = surface_create(300, 75)
-    client_port_surface = surface_create(300, 75)
-    client_choose_surface = surface_create(200, 75)
-
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-                
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if server_host_surface.get_rect(center=(375, 350)).collidepoint(event.pos):
-                    server_host_active = True
-                else:
-                    server_host_active = False
-                    
-                if server_port_surface.get_rect(center=(375, 450)).collidepoint(event.pos):
-                    server_port_active = True
-                else:
-                    server_port_active = False
-                    
-                if server_choose_surface.get_rect(center=(375, 550)).collidepoint(event.pos):
-                    return ("Server", server_host_text if server_host_text != "" else config.get('SERVER', 'HOST_IP'), server_port_text if server_port_text != "" else config.get('SERVER', 'HOST_PORT'))
-                
-                    
-                if client_host_surface.get_rect(center=(1125, 350)).collidepoint(event.pos):
-                    client_host_active = True
-                else:
-                    client_host_active = False
-                    
-                if client_port_surface.get_rect(center=(1125, 450)).collidepoint(event.pos):
-                    client_port_active = True
-                else:
-                    client_port_active = False
-                    
-                if client_choose_surface.get_rect(center=(1125, 550)).collidepoint(event.pos):
-                    return ("Client", client_host_text if client_host_text != "" else config.get('CLIENT', 'HOST_IP'), client_port_text if client_port_text != "" else config.get('CLIENT', 'HOST_PORT'))
-            
-            if event.type == pygame.KEYDOWN and server_host_active:
-                if event.key == pygame.K_BACKSPACE:
-                    server_host_text = server_host_text[:-1]
-                else:
-                    server_host_text += event.unicode
-                
-            if event.type == pygame.KEYDOWN and server_port_active:
-                if event.key == pygame.K_BACKSPACE:
-                    server_port_text = server_port_text[:-1]
-                else:
-                    server_port_text += event.unicode
-
-            if event.type == pygame.KEYDOWN and client_host_active:
-                if event.key == pygame.K_BACKSPACE:
-                    client_host_text = client_host_text[:-1]
-                else:
-                    client_host_text += event.unicode
-                
-            if event.type == pygame.KEYDOWN and client_port_active:
-                if event.key == pygame.K_BACKSPACE:
-                    client_port_text = client_port_text[:-1]
-                else:
-                    client_port_text += event.unicode
-    
-        screen.blit(background, (0, 0))
-        # screen.blit(surface_create(300, 100), (600, 100))
-        screen.blit(title_surface, title_surface.get_rect(center=(750, 150)))
-        screen.blit(text_create("Choose your function"), text_create("Choose your function").get_rect(center=(750, 150)))
-        
-        screen.blit(surface_create(200, 75), surface_create(200, 75).get_rect(center=(375, 250)))
-        screen.blit(text_create("Server"), text_create("Server").get_rect(center=(375, 250)))
-        
-        screen.blit(server_host_surface, server_host_surface.get_rect(center=(375, 350)))
-        screen.blit(text_create("HOST:"), text_create("HOST:").get_rect(center=(275, 350)))
-        screen.blit(text_create(server_host_text), text_create(server_host_text).get_rect(midleft=(325, 350)))
-        
-        screen.blit(server_port_surface, server_port_surface.get_rect(center=(375, 450)))
-        screen.blit(text_create("PORT:"), text_create("PORT:").get_rect(center=(275, 450)))
-        screen.blit(text_create(server_port_text), text_create(server_port_text).get_rect(midleft=(325, 450)))
-        
-        screen.blit(server_choose_surface, server_choose_surface.get_rect(center=(375, 550)))
-        screen.blit(text_create("Choose"), text_create("Choose").get_rect(center=(375, 550)))
-        
-        
-        
-        screen.blit(surface_create(200, 75), surface_create(200, 75).get_rect(center=(1125, 250)))
-        screen.blit(text_create("Client"), text_create("Client").get_rect(center=(1125, 250)))
-        
-        screen.blit(client_host_surface, client_host_surface.get_rect(center=(1125, 350)))
-        screen.blit(text_create("HOST:"), text_create("HOST:").get_rect(center=(1025, 350)))
-        screen.blit(text_create(client_host_text), text_create(client_host_text).get_rect(midleft=(1075, 350)))
-        
-        screen.blit(client_port_surface, client_port_surface.get_rect(center=(1125, 450)))
-        screen.blit(text_create("PORT:"), text_create("PORT:").get_rect(center=(1025, 450)))
-        screen.blit(text_create(client_port_text), text_create(client_port_text).get_rect(midleft=(1075, 450)))
-        
-        screen.blit(client_choose_surface, client_choose_surface.get_rect(center=(1125, 550)))
-        screen.blit(text_create("Choose"), text_create("Choose").get_rect(center=(1125, 550)))
-        
-
-        # screen.fill((255, 255, 255))
-        # pygame.display.flip()
-        pygame.display.update()
-        clock.tick(20)
-      
-def choose_layout():
-    background = pygame.image.load("background.jpg")
-    board_layout =[[surface_create(70, 70) for _ in range(10)] for _ in range(10)]
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-        screen.blit(background, (0, 0))
-        
-        screen.blit(surface_create(300, 75), surface_create(300, 75).get_rect(center=(450, 70)))
-        screen.blit(text_create("YOUR BOARD"), text_create("YOUR BOARD").get_rect(center=(450, 70)))
-        
-        for i in range(10):
-            for j in range(10):
-                board_layout[i][j].fill((255, 255, 255))
-                screen.blit(board_layout[i][j], (i * 70 + 100, j * 70 + 150))
-                # rect_create(i * 70 + 100, j * 70 + 100, 70, 70)
-        for i in range(11):
-            pygame.draw.line(screen, (0, 0, 0), (i * 70 + 100, 150), (i * 70 + 100, 850), 1)
-            pygame.draw.line(screen, (0, 0, 0), (100, i * 70 + 150), (800, i * 70 + 150), 1)
-            
-        screen.blit(surface_create(300, 75), surface_create(300, 75).get_rect(center=(1100, 70)))
-        screen.blit(text_create("YOUR SHIPS"), text_create("YOUR SHIPS").get_rect(center=(1100, 70)))
-            
-        screen.blit(surface_create(70, 280, color=(128, 128, 128)), surface_create(70, 280, color=(128, 128, 128)).get_rect(topleft=(850, 150)))
-        
-        screen.blit(surface_create(70, 210, color=(128, 128, 128)), surface_create(70, 210, color=(128, 128, 128)).get_rect(topleft=(950, 150)))
-        screen.blit(surface_create(70, 210, color=(128, 128, 128)), surface_create(70, 210, color=(128, 128, 128)).get_rect(topleft=(1050, 150)))
-        
-        screen.blit(surface_create(70, 140, color=(128, 128, 128)), surface_create(70, 140, color=(128, 128, 128)).get_rect(topleft=(1150, 150)))
-        screen.blit(surface_create(70, 140, color=(128, 128, 128)), surface_create(70, 140, color=(128, 128, 128)).get_rect(topleft=(1150, 350)))
-        screen.blit(surface_create(70, 140, color=(128, 128, 128)), surface_create(70, 140, color=(128, 128, 128)).get_rect(topleft=(1150, 550)))
-        
-        screen.blit(surface_create(70, 70, color=(128, 128, 128)), surface_create(70, 70, color=(128, 128, 128)).get_rect(topleft=(1250, 150)))
-        screen.blit(surface_create(70, 70, color=(128, 128, 128)), surface_create(70, 70, color=(128, 128, 128)).get_rect(topleft=(1250, 250)))
-        screen.blit(surface_create(70, 70, color=(128, 128, 128)), surface_create(70, 70, color=(128, 128, 128)).get_rect(topleft=(1250, 350)))
-        screen.blit(surface_create(70, 70, color=(128, 128, 128)), surface_create(70, 70, color=(128, 128, 128)).get_rect(topleft=(1250, 450)))
-        
-        
-        pygame.display.update()
-        clock.tick(20)  
-
-
 class Board():
 
     def __init__(self):
@@ -206,7 +17,7 @@ class Board():
         self.pickup_height = 0
         self.pickup_segment = 0
         self.ships = {}
-        self.placing_ships = False  # Do zmiany na True jak bedziemy odpalac ukladanie
+        self.placing_ships = True  # Do zmiany na True jak bedziemy odpalac ukladanie
         self.ships_to_place = []
         self.placing_squares_left_top_corners = []
         self.placed_ships = []
@@ -218,10 +29,12 @@ class Board():
         self.all_ships_placed = False
         self.confirm_button = None
         self.attack_button = None
-        self.game_stage = "battle" # Do zmiany na "placing" albo "menu"
+        self.game_stage = "placing" # Do zmiany na "placing" albo "menu"
         self.placed_ships_coordinates = []
         self.sunken_ships = []
         self.attacked_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
+                            for _ in range(NUMBER_OF_RECTS)]
+        self.enemy_attacked_tiles = [[0 for _ in range(NUMBER_OF_RECTS)]
                             for _ in range(NUMBER_OF_RECTS)]
         self.chosen_tile = ()
         self.enemy_squares_rects = []
@@ -233,8 +46,214 @@ class Board():
         self.selected_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
                             for _ in range(NUMBER_OF_RECTS)]
         
+        pygame.init()
+        self.screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pygame.display.set_caption("Battle ships")
+        self.clock = pygame.time.Clock()
+        self.config = configparser.ConfigParser()
+        self.config.read("config.ini")
+        self.background = pygame.image.load("background.jpg")
+        
+        
+    # Create a surface with given width, height and color
+    def surface_create(self, w, h, color=(255, 255, 255)):
+        surface = pygame.Surface((w, h))
+        surface.fill(color)
+        return surface
+
+    # Create a text surface with given text, font size and color
+    def text_create(self, text, font_size=36, color=(0, 0, 0)):
+        font = pygame.font.SysFont('Arial', font_size)
+        return font.render(text, True, color) 
+
+    # Create a rectangle with given coordinates, width, height and color
+    def rect_create(self, x, y, w, h, color=(255, 255, 255)):
+        
+        rect = pygame.Rect(x, y, w, h)
+        pygame.draw.rect(self.screen, color, rect)
+        return rect
+
+    # Function to create a start menu
+    # It allows to choose if you want to play as a server or client
+    def start_menu(self):
+        server_host_active = False
+        server_port_active = False
+        client_host_active = False
+        client_port_active = False
+        server_host_text = ""
+        server_port_text = ""
+        client_host_text = ""
+        client_port_text = ""
+
+        title_surface = self.surface_create(300, 75)
+        server_host_surface = self.surface_create(300, 75)
+        server_port_surface = self.surface_create(300, 75)
+        server_choose_surface = self.surface_create(200, 75)
+        
+        client_host_surface = self.surface_create(300, 75)
+        client_port_surface = self.surface_create(300, 75)
+        client_choose_surface = self.surface_create(200, 75)
+
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+                    
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if server_host_surface.get_rect(center=(375, 350)).collidepoint(event.pos):
+                        server_host_active = True
+                    else:
+                        server_host_active = False
+                        
+                    if server_port_surface.get_rect(center=(375, 450)).collidepoint(event.pos):
+                        server_port_active = True
+                    else:
+                        server_port_active = False
+                        
+                    if server_choose_surface.get_rect(center=(375, 550)).collidepoint(event.pos):
+                        return ("Server", server_host_text if server_host_text != "" else self.config.get('SERVER', 'HOST_IP'), server_port_text if server_port_text != "" else self.config.get('SERVER', 'HOST_PORT'))
+                    
+                        
+                    if client_host_surface.get_rect(center=(1125, 350)).collidepoint(event.pos):
+                        client_host_active = True
+                    else:
+                        client_host_active = False
+                        
+                    if client_port_surface.get_rect(center=(1125, 450)).collidepoint(event.pos):
+                        client_port_active = True
+                    else:
+                        client_port_active = False
+                        
+                    if client_choose_surface.get_rect(center=(1125, 550)).collidepoint(event.pos):
+                        return ("Client", client_host_text if client_host_text != "" else self.config.get('CLIENT', 'HOST_IP'), client_port_text if client_port_text != "" else self.config.get('CLIENT', 'HOST_PORT'))
+                
+                if event.type == pygame.KEYDOWN and server_host_active:
+                    if event.key == pygame.K_BACKSPACE:
+                        server_host_text = server_host_text[:-1]
+                    else:
+                        server_host_text += event.unicode
+                    
+                if event.type == pygame.KEYDOWN and server_port_active:
+                    if event.key == pygame.K_BACKSPACE:
+                        server_port_text = server_port_text[:-1]
+                    else:
+                        server_port_text += event.unicode
+
+                if event.type == pygame.KEYDOWN and client_host_active:
+                    if event.key == pygame.K_BACKSPACE:
+                        client_host_text = client_host_text[:-1]
+                    else:
+                        client_host_text += event.unicode
+                    
+                if event.type == pygame.KEYDOWN and client_port_active:
+                    if event.key == pygame.K_BACKSPACE:
+                        client_port_text = client_port_text[:-1]
+                    else:
+                        client_port_text += event.unicode
+        
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(title_surface, title_surface.get_rect(center=(750, 150)))
+            self.screen.blit(self.text_create("Choose your function"), self.text_create("Choose your function").get_rect(center=(750, 150)))
+            
+            self.screen.blit(self.surface_create(200, 75), self.surface_create(200, 75).get_rect(center=(375, 250)))
+            self.screen.blit(self.text_create("Server"), self.text_create("Server").get_rect(center=(375, 250)))
+            
+            self.screen.blit(server_host_surface, server_host_surface.get_rect(center=(375, 350)))
+            self.screen.blit(self.text_create("HOST:"), self.text_create("HOST:").get_rect(center=(275, 350)))
+            self.screen.blit(self.text_create(server_host_text), self.text_create(server_host_text).get_rect(midleft=(325, 350)))
+            
+            self.screen.blit(server_port_surface, server_port_surface.get_rect(center=(375, 450)))
+            self.screen.blit(self.text_create("PORT:"), self.text_create("PORT:").get_rect(center=(275, 450)))
+            self.screen.blit(self.text_create(server_port_text), self.text_create(server_port_text).get_rect(midleft=(325, 450)))
+            
+            self.screen.blit(server_choose_surface, server_choose_surface.get_rect(center=(375, 550)))
+            self.screen.blit(self.text_create("Choose"), self.text_create("Choose").get_rect(center=(375, 550)))
+            
+            
+            
+            self.screen.blit(self.surface_create(200, 75), self.surface_create(200, 75).get_rect(center=(1125, 250)))
+            self.screen.blit(self.text_create("Client"), self.text_create("Client").get_rect(center=(1125, 250)))
+            
+            self.screen.blit(client_host_surface, client_host_surface.get_rect(center=(1125, 350)))
+            self.screen.blit(self.text_create("HOST:"), self.text_create("HOST:").get_rect(center=(1025, 350)))
+            self.screen.blit(self.text_create(client_host_text), self.text_create(client_host_text).get_rect(midleft=(1075, 350)))
+            
+            self.screen.blit(client_port_surface, client_port_surface.get_rect(center=(1125, 450)))
+            self.screen.blit(self.text_create("PORT:"), self.text_create("PORT:").get_rect(center=(1025, 450)))
+            self.screen.blit(self.text_create(client_port_text), self.text_create(client_port_text).get_rect(midleft=(1075, 450)))
+            
+            self.screen.blit(client_choose_surface, client_choose_surface.get_rect(center=(1125, 550)))
+            self.screen.blit(self.text_create("Choose"), self.text_create("Choose").get_rect(center=(1125, 550)))
+            
+
+            
+            pygame.display.update()
+            self.clock.tick(20)
+    
+    # Get the game stage
     def get_game_stage(self):
         return self.game_stage
+
+    # Choosing the layout of the ships
+    def choose_layout(self): 
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(self.background, (0, 0))
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    # Close the game when escape is pressed
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                if event.type == pygame.QUIT:
+                    running = False
+                if self.get_game_stage() == "placing":
+                    self.create_positioning_board()
+                    self.create_ships_to_place()
+                    self.draw_ships_to_place()
+                    self.place_ships(event)
+                    self.show_confirm_button()
+                    self.confirm_button_pressed(event)
+                    
+                else:
+                    return
+                    
+                pygame.display.flip()   
+          
+    #TODO dodac funkcję która rysuje ataki przeciwnika
+    def draw_enemy_hits(self):
+        # self.enemy_attacked_tiles
+
+        pygame.display.flip()
+     
+    # Function to draw board           
+    def draw_board(self):
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(self.background, (0, 0))
+        self.create_playing_board()
+        self.draw_player_ships()
+        self.draw_enemy_hits()
+    
+    # Function with mechanic of attacking 
+    def battle(self):
+        self.screen.fill((0, 0, 0))
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.KEYDOWN:
+                    # Close the game when escape is pressed
+                    if event.key == pygame.K_ESCAPE:
+                        running = False
+                if event.type == pygame.QUIT:
+                    running = False
+                if self.get_game_stage() == "battle":
+                    self.draw_board()
+                    self.select_square(event)
+                    self.show_attack_button()
+                    pressed = self.attack_button_pressed(event)
+                    if pressed:
+                        return(pressed[1], pressed[2])
+                
+                pygame.display.flip()   
 
     # Create a board at which player can place his/her ships
     def create_positioning_board(self):
@@ -246,8 +265,8 @@ class Board():
             # Calculate coordiantes of a letter and draw it to the left of the board
             letter_x = SCREEN_WIDTH // 2 - RECT_WIDTH * NUMBER_OF_RECTS // 2 - RECT_WIDTH
             letter_y = TOP_MARGIN // 2 + i * (RECT_HEIGHT) + RECT_HEIGHT // 2
-            letter_surface = text_create(ALPHABET[i], 24, "white")
-            screen.blit(letter_surface, (letter_x, letter_y))
+            letter_surface = self.text_create(ALPHABET[i], 24, "white")
+            self.screen.blit(letter_surface, (letter_x, letter_y))
 
             self.row = []
 
@@ -256,7 +275,7 @@ class Board():
                 rect_x = SCREEN_WIDTH // 2 - RECT_WIDTH * NUMBER_OF_RECTS // 2 + j * RECT_WIDTH + j
                 rect_y = TOP_MARGIN // 2 + i * RECT_HEIGHT + i
                 rect = pygame.Rect(rect_x, rect_y, RECT_WIDTH, RECT_HEIGHT)
-                pygame.draw.rect(screen, "white", rect)
+                pygame.draw.rect(self.screen, "white", rect)
                 
                 # Add rects coordinates and x,y as tuples to the row array
                 self.row.append([(i, j), (rect_x, rect_y)])
@@ -265,8 +284,8 @@ class Board():
                     # Calculate coordiantes of a number and draw it at the top of the board
                     number_x = SCREEN_WIDTH // 2 - RECT_WIDTH * NUMBER_OF_RECTS // 2 + j * (RECT_WIDTH + 1) + RECT_WIDTH // 2
                     number_y = TOP_MARGIN // 2 - 40
-                    number_surface = text_create(str(j+1), 24, "white")
-                    screen.blit(number_surface, (number_x, number_y))
+                    number_surface = self.text_create(str(j+1), 24, "white")
+                    self.screen.blit(number_surface, (number_x, number_y))
                 
                 # Add left bound and top bound to the bounds arrays    
                 if (i == 0 and j == 0):
@@ -301,7 +320,7 @@ class Board():
     # Draw ships that are present in the ships_to_place array to the board
     def draw_ships_to_place(self):
         for ship in self.ships_to_place:
-            pygame.draw.rect(screen, ship[1], ship[0])
+            pygame.draw.rect(self.screen, ship[1], ship[0])
 
     # Create a rectangle representing submarine
     def create_submarine_to_place(self, x, y):
@@ -518,7 +537,7 @@ class Board():
             if self.active_box is not None:
                 self.redraw_all()
                 self.ships_to_place[self.active_box][0].move_ip(event.rel)
-                pygame.draw.rect(screen, self.picked_up_color, 
+                pygame.draw.rect(self.screen, self.picked_up_color, 
                             self.ships_to_place[self.active_box][0])
                 pygame.display.flip()
    
@@ -570,12 +589,12 @@ class Board():
     def show_confirm_button(self):
         if self.all_ships_placed:
             button = pygame.rect.Rect(CONFIRM_BUTTON_X,  CONFIRM_BUTTON_Y, RECT_WIDTH * 3, RECT_HEIGHT * 1.5)
-            pygame.draw.rect(screen, "gray", button)
+            pygame.draw.rect(self.screen, "gray", button)
             
             text_x = SCREEN_WIDTH // 2 - RECT_WIDTH * 1.5
             text_y = TOP_MARGIN + RECT_HEIGHT * NUMBER_OF_RECTS
-            text_surface = text_create("CONFIRM", 24, "black")
-            screen.blit(text_surface, (text_x, text_y))
+            text_surface = self.text_create("CONFIRM", 24, "black")
+            self.screen.blit(text_surface, (text_x, text_y))
             
             self.confirm_button = button
             
@@ -594,7 +613,7 @@ class Board():
                         print(self.placed_ships_coordinates)
                         self.game_stage = "battle"
                         self.placing_ships = False
-                        screen.fill(BACKGROUND_COLOR)
+                        self.screen.fill(BACKGROUND_COLOR)
 
                     return
                 
@@ -609,15 +628,16 @@ class Board():
     
     # Redraw eveyrthing to the screen
     def redraw_all(self):
-        screen.fill(BACKGROUND_COLOR)
+        self.screen.fill(BACKGROUND_COLOR)
+        self.screen.blit(self.background, (0, 0))
         self.create_positioning_board()
         # Draw placed ships first
         for ship in self.placed_ships:
-            pygame.draw.rect(screen, ship[1], ship[0])
+            pygame.draw.rect(self.screen, ship[1], ship[0])
         # Then draw ships waiting to be placed
         for i, ship in enumerate(self.ships_to_place):
             if i != self.active_box:  # Don't draw the active ship here
-                pygame.draw.rect(screen, ship[1], ship[0])
+                pygame.draw.rect(self.screen, ship[1], ship[0])
         pygame.display.flip()
 
     # Function to create two basic boards with letters and numbers representing coordinates written next to them      
@@ -629,8 +649,8 @@ class Board():
         for i in range(NUMBER_OF_RECTS):
             letter_x = LEFT_MARGIN - 30
             letter_y = TOP_MARGIN + i * (RECT_HEIGHT) + RECT_HEIGHT // 2
-            letter_surface = text_create(ALPHABET[i], 24, "white")
-            screen.blit(letter_surface, (letter_x, letter_y))
+            letter_surface = self.text_create(ALPHABET[i], 24, "white")
+            self.screen.blit(letter_surface, (letter_x, letter_y))
 
             self.row = []
 
@@ -638,13 +658,13 @@ class Board():
                 rect_x = LEFT_MARGIN + j * RECT_WIDTH + j
                 rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
                 rect = pygame.Rect(rect_x, rect_y, RECT_WIDTH, RECT_HEIGHT)
-                pygame.draw.rect(screen, "white", rect)
+                pygame.draw.rect(self.screen, "white", rect)
                 self.row.append([(i, j), (rect_x, rect_y)])
                 if (i == 0):
                     number_x = LEFT_MARGIN + j * (RECT_WIDTH + 1) + RECT_WIDTH // 2
                     number_y = TOP_MARGIN - 40
-                    number_surface = text_create(str(j+1), 24, "white")
-                    screen.blit(number_surface, (number_x, number_y))
+                    number_surface = self.text_create(str(j+1), 24, "white")
+                    self.screen.blit(number_surface, (number_x, number_y))
                 
                 # Add left bound and top bound to the bounds arrays    
                 if (i == 0 and j == 0):
@@ -656,15 +676,14 @@ class Board():
                     self.side_bounds.append(rect_x + RECT_WIDTH)
             self.player_squares_left_top_corners.append(self.row)
             
-
         # Create board for second player
         for i in range(NUMBER_OF_RECTS):
             self.row = []
             self.rect_row = []
             letter_x = LEFT_MARGIN - 30 + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH
             letter_y = TOP_MARGIN + i * (RECT_HEIGHT) + RECT_HEIGHT // 2
-            letter_surface = text_create(ALPHABET[i], 24, "white")
-            screen.blit(letter_surface, (letter_x, letter_y))
+            letter_surface = self.text_create(ALPHABET[i], 24, "white")
+            self.screen.blit(letter_surface, (letter_x, letter_y))
             for j in range(NUMBER_OF_RECTS):
                 rect_x = LEFT_MARGIN + j * RECT_WIDTH + j + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH
                 rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
@@ -677,18 +696,18 @@ class Board():
                 if (i == 0):
                     number_x = LEFT_MARGIN + j * (RECT_WIDTH + 1) + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH + RECT_WIDTH // 2
                     number_y = TOP_MARGIN - 40
-                    number_surface = text_create(str(j+1), 24, "white")
-                    screen.blit(number_surface, (number_x, number_y))
+                    number_surface = self.text_create(str(j+1), 24, "white")
+                    self.screen.blit(number_surface, (number_x, number_y))
             if len(self.enemy_squares_left_top_corners) < NUMBER_OF_RECTS:
                 self.enemy_squares_left_top_corners.append(self.row)
 
         turn_x = SCREEN_WIDTH // 2 - 100
         turn_y = TOP_MARGIN - 75
         if self.whose_turn == 0:
-            turn_surface = text_create("Your turn", 36, "white")
+            turn_surface = self.text_create("Your turn", 36, "white")
         else:
-            turn_surface = text_create("Enemy turn", 36, "white")
-        screen.blit(turn_surface, (turn_x, turn_y))
+            turn_surface = self.text_create("Enemy turn", 36, "white")
+        self.screen.blit(turn_surface, (turn_x, turn_y))
 
         pygame.display.flip()
 
@@ -707,7 +726,7 @@ class Board():
             new_position = self.determine_coordinates(ship_coordinates[0], ship_coordinates[1])
             new_rect = pygame.rect.Rect(new_position[0],new_position[1], rect.width, rect.height)
             
-            pygame.draw.rect(screen, ship_color, new_rect)
+            pygame.draw.rect(self.screen, ship_color, new_rect)
 
         pygame.display.flip()
     
@@ -720,11 +739,11 @@ class Board():
         
         # Draw the base white square
         rect = pygame.Rect(x, y, RECT_WIDTH, RECT_HEIGHT)
-        pygame.draw.rect(screen, "white", rect)
+        pygame.draw.rect(self.screen, "white", rect)
         
         # If selected, highlight with red border
         if self.selected_tiles[square_x][square_y]:
-            pygame.draw.rect(screen, "red", rect, 2)  # 2 is the border width
+            pygame.draw.rect(self.screen, "red", rect, 2)  # 2 is the border width
         
         # Draw X for miss (attacked_tiles == 1)
         if self.attacked_tiles[square_x][square_y] == 1:
@@ -733,14 +752,14 @@ class Board():
             end_pos1 = (x + RECT_WIDTH - 5, y + RECT_HEIGHT - 5)
             start_pos2 = (x + RECT_WIDTH - 5, y + 5)
             end_pos2 = (x + 5, y + RECT_HEIGHT - 5)
-            pygame.draw.line(screen, "red", start_pos1, end_pos1, 2)
-            pygame.draw.line(screen, "red", start_pos2, end_pos2, 2)
+            pygame.draw.line(self.screen, "red", start_pos1, end_pos1, 2)
+            pygame.draw.line(self.screen, "red", start_pos2, end_pos2, 2)
         
         # Draw circle for hit (attacked_tiles == 2)
         elif self.attacked_tiles[square_x][square_y] == 2:
             center = (x + RECT_WIDTH // 2, y + RECT_HEIGHT // 2)
             radius = RECT_WIDTH // 2 - 5
-            pygame.draw.circle(screen, "red", center, radius, 2)
+            pygame.draw.circle(self.screen, "red", center, radius, 2)
         
         return None  # We're doing the drawing here, so no need to return a color
     
@@ -761,10 +780,10 @@ class Board():
     def show_attack_button(self):
         if self.whose_turn == 0:
             button = pygame.rect.Rect(ATTACK_BUTTON_X, ATTACK_BUTTON_Y, RECT_WIDTH * 3, RECT_HEIGHT * 1.5)
-            pygame.draw.rect(screen, "gray", button)
+            pygame.draw.rect(self.screen, "gray", button)
             
-            text_surface = text_create("ATTACK", 24, "black")
-            screen.blit(text_surface, (ATTACK_BUTTON_X, ATTACK_BUTTON_Y))
+            text_surface = self.text_create("ATTACK", 24, "black")
+            self.screen.blit(text_surface, (ATTACK_BUTTON_X, ATTACK_BUTTON_Y))
             
             self.attack_button = button
             
@@ -772,27 +791,41 @@ class Board():
      
     # Function to check if attack button was pressed 
     def attack_button_pressed(self, event):
+        x = 99
+        y = 99
         if self.whose_turn == 0:
             if self.attack_button is not None:
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         if self.attack_button.collidepoint(event.pos):
                             print("Attack button pressed")
-                            screen.fill(BACKGROUND_COLOR)
+                            self.screen.fill(BACKGROUND_COLOR)
                             for i in range(NUMBER_OF_RECTS):
                                 for j in range(NUMBER_OF_RECTS):
                                     if self.selected_tiles[i][j] == 1:
-                                        if self.enemy_ships[i][j] == 1:
-                                            self.attacked_tiles[i][j] = 2
-                                        else:
-                                            self.attacked_tiles[i][j] = 1
+                                        x = i
+                                        y = j
                             self.selected_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
                                 for _ in range(NUMBER_OF_RECTS)]
-                            self.make_turn()
-
-                        return
+                        if x != 99 and y != 99:
+                            return (True, x, y)
                     
-            return
+            return (False)
+     
+    #TODO zmienic na lepszą tabelkę
+    # Function to check if the attack was successful
+    def receiving_attack(self, attack):
+        x = attack[0]
+        y = attack[1]
+        hit = False
+        for ships in self.placed_ships_coordinates:
+            if ships[1] == (x, y):
+                self.enemy_attacked_tiles[x][y] = 2
+                hit = True
+                break
+        if not hit:
+            self.enemy_attacked_tiles[x][y] = 1
+        return hit
      
     # Switch turns 
     def make_turn(self):

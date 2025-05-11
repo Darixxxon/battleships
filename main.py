@@ -1,42 +1,17 @@
 from board import *
+import client
+import server
 
 if __name__ == "__main__":
-    running = True
+   running = True
+   board = Board()
 
-    #(type, host, port) = start_menu()
-    #if type == "Server":
-    #    server.main_server(host, port)
-    #elif type == "Client":
-    #    client.main_client(host, port)
-    board = Board()
-    #board.create_array_with_player_ships()
-    #board.create_array_with_enemy_ships()
-    #board.create_playing_board()
-
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.KEYDOWN:
-                # Close the game when escape is pressed
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-            if event.type == pygame.QUIT:
-                running = False
-            if board.get_game_stage() == "placing":
-                board.create_positioning_board()
-                board.create_ships_to_place()
-                board.draw_ships_to_place()
-                board.place_ships(event)
-                board.show_confirm_button()
-                board.confirm_button_pressed(event)
-            elif board.get_game_stage() == "battle":
-                board.create_playing_board()
-                board.draw_player_ships()
-                board.select_square(event)
-                board.show_attack_button()
-                board.attack_button_pressed(event)
-            
-            #board.move_ship(event)
-            pygame.display.flip()
-    board.determine_enemy_square_color(0,0)
-    pygame.quit()
-    quit()
+   (type, host, port) = board.start_menu()
+   if type == "Server":
+      server.main_server(board, host, port)
+   elif type == "Client":
+      client.main_client(board, host, port)
+       
+   board.determine_enemy_square_color(0,0)
+   pygame.quit()
+   quit()
