@@ -25,6 +25,7 @@ if __name__ == "__main__":
                 board.create_positioning_board()
                 board.create_ships_to_place()
                 board.draw_ships_to_place()
+                board.draw_placed_ships()
                 board.place_ships(event)
                 board.show_confirm_button()
                 board.confirm_button_pressed(event)
@@ -37,6 +38,5 @@ if __name__ == "__main__":
             
             #board.move_ship(event)
             pygame.display.flip()
-    board.determine_enemy_square_color(0,0)
     pygame.quit()
     quit()

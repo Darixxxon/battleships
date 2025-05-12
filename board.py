@@ -206,7 +206,7 @@ class Board():
         self.pickup_height = 0
         self.pickup_segment = 0
         self.ships = {}
-        self.placing_ships = False  # Do zmiany na True jak bedziemy odpalac ukladanie
+        self.placing_ships = True  # Do zmiany na True jak bedziemy odpalac ukladanie
         self.ships_to_place = []
         self.placing_squares_left_top_corners = []
         self.placed_ships = []
@@ -218,7 +218,7 @@ class Board():
         self.all_ships_placed = False
         self.confirm_button = None
         self.attack_button = None
-        self.game_stage = "battle" # Do zmiany na "placing" albo "menu"
+        self.game_stage = "placing" # Do zmiany na "placing" albo "menu"
         self.placed_ships_coordinates = []
         self.sunken_ships = []
         self.attacked_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
@@ -281,26 +281,31 @@ class Board():
 
     # Create all ships that are supposed to be available to place
     def create_ships_to_place(self):
-        for i in range(TOTAL_SHIPS):
-            # Calculate the ships position under the board
-            rect_x = SCREEN_WIDTH // 2 - RECT_WIDTH * NUMBER_OF_RECTS // 2 + i * (RECT_WIDTH + 10)
-            rect_y = TOP_MARGIN + RECT_HEIGHT * NUMBER_OF_RECTS
+        if len(self.ships_to_place) == 0 and len(self.placed_ships) == 0:
+            for i in range(TOTAL_SHIPS):
+                # Calculate the ships position under the board
+                rect_x = SCREEN_WIDTH // 2 - RECT_WIDTH * NUMBER_OF_RECTS // 2 + i * (RECT_WIDTH + 10)
+                rect_y = TOP_MARGIN + RECT_HEIGHT * NUMBER_OF_RECTS
 
-            if i < NUMBER_OF_DESTORYES:
-                self.create_destroyer_to_place(rect_x, rect_y)
-            elif i < NUMBER_OF_DESTORYES + NUMBER_OF_SUBMARINES:
-                self.create_submarine_to_place(rect_x, rect_y)
-            elif i < NUMBER_OF_DESTORYES + NUMBER_OF_SUBMARINES + NUMBER_OF_CRUISERS:
-                self.create_cruiser_to_place(rect_x, rect_y)
-            elif i < NUMBER_OF_DESTORYES + NUMBER_OF_SUBMARINES + NUMBER_OF_CRUISERS + NUMBER_OF_BATTLESHIPS:
-                self.create_battleship_to_place(rect_x, rect_y)
-            else:
-                self.create_carrier_to_place(rect_x, rect_y)           
-        pygame.display.flip()
+                if i < NUMBER_OF_DESTORYES:
+                    self.create_destroyer_to_place(rect_x, rect_y)
+                elif i < NUMBER_OF_DESTORYES + NUMBER_OF_SUBMARINES:
+                    self.create_submarine_to_place(rect_x, rect_y)
+                elif i < NUMBER_OF_DESTORYES + NUMBER_OF_SUBMARINES + NUMBER_OF_CRUISERS:
+                    self.create_cruiser_to_place(rect_x, rect_y)
+                elif i < NUMBER_OF_DESTORYES + NUMBER_OF_SUBMARINES + NUMBER_OF_CRUISERS + NUMBER_OF_BATTLESHIPS:
+                    self.create_battleship_to_place(rect_x, rect_y)
+                else:
+                    self.create_carrier_to_place(rect_x, rect_y)           
+            pygame.display.flip()
 
     # Draw ships that are present in the ships_to_place array to the board
     def draw_ships_to_place(self):
         for ship in self.ships_to_place:
+            pygame.draw.rect(screen, ship[1], ship[0])
+
+    def draw_placed_ships(self):
+        for ship in self.placed_ships:
             pygame.draw.rect(screen, ship[1], ship[0])
 
     # Create a rectangle representing submarine
@@ -372,41 +377,23 @@ class Board():
     
     # Placing, moving and rotating ships
     def place_ships(self, event):
-        if event.type == pygame.KEYDOWN:
-            # Rotate the active ship on q button pressed
-            if event.key == pygame.K_q and self.active_box is not None:
-                ship_rect = self.ships_to_place[self.active_box][0]
-                # Swap width and height
-                ship_rect.width, ship_rect.height = ship_rect.height, ship_rect.width
-                # Adjust position to keep the same center point
-                ship_rect.x -= (ship_rect.height - ship_rect.width) // 2
-                ship_rect.y -= (ship_rect.width - ship_rect.height) // 2
-                self.redraw_all()
-                return
-        
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if event.button == 1:
-                # First check if we're clicking on an already placed ship
-                for num, box in enumerate(self.placed_ships):
-                    if box[0].collidepoint(event.pos):
-                        self.active_box = num
-                        self.picked_up_color = box[1]
-                        self.last_valid_position = box[0].topleft
-                        
-                        # Calculate which segment of the ship was clicked
-                        ship_rect = box[0]
-                        click_y = event.pos[1] - ship_rect.y
-                        ship_height = ship_rect.height
-                        
-                        # Calculate segment height (each segment is 1 unit tall)
-                        segment = min(int(click_y / RECT_HEIGHT), ship_height - 1)
-                        self.pickup_segment = segment
-                        
-                        self.ships_to_place.append(self.placed_ships.pop(num))
-                        break
-                # Check ships_to_place
-                else:
-                    for num, box in enumerate(self.ships_to_place):
+        if self.placing_ships:
+            if event.type == pygame.KEYDOWN:
+                # Rotate the active ship on q button pressed
+                if event.key == pygame.K_q and self.active_box is not None:
+                    ship_rect = self.ships_to_place[self.active_box][0]
+                    # Swap width and height
+                    ship_rect.width, ship_rect.height = ship_rect.height, ship_rect.width
+                    # Adjust position to keep the same center point
+                    ship_rect.x -= (ship_rect.height - ship_rect.width) // 2
+                    ship_rect.y -= (ship_rect.width - ship_rect.height) // 2
+                    self.redraw_all()
+                    return
+            
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    # First check if we're clicking on an already placed ship
+                    for num, box in enumerate(self.placed_ships):
                         if box[0].collidepoint(event.pos):
                             self.active_box = num
                             self.picked_up_color = box[1]
@@ -421,106 +408,125 @@ class Board():
                             segment = min(int(click_y / RECT_HEIGHT), ship_height - 1)
                             self.pickup_segment = segment
                             
+                            self.ships_to_place.append(self.placed_ships.pop(num))
                             break
-        
-        if event.type == pygame.MOUSEBUTTONUP:
-            if event.button == 1 and self.active_box is not None:
-                square = self.determine_square(event.pos[0], event.pos[1])
-                if square != -1:
-                    y, x = square  # grid coordinates
-                    moving_ship = self.ships_to_place[self.active_box]
-                    ship_rect = moving_ship[0]
-                    ship_height = ship_rect.height
-                    ship_width = ship_rect.width
-                    
-                    # Determine orientation (vertical if height > width)
-                    is_vertical = ship_height > ship_width
-                    
-                    if is_vertical:
-                        # Vertical placement logic
-                        actual_top_y = y - self.pickup_segment
-                        
-                        # Validate placement
-                        valid_placement = True
-                        for i in range(int(ship_height // RECT_HEIGHT)):
-                            check_y = actual_top_y + i
-                            if (check_y < 0 or check_y >= len(self.occupancy_grid) or 
-                                self.occupancy_grid[check_y][x] > 0):
-                                valid_placement = False
-                                break
-                        
-                        if valid_placement:
-                            # Calculate new position
-                            new_x = self.placing_squares_left_top_corners[0][x][1][0]
-                            new_y = self.placing_squares_left_top_corners[y][0][1][1] - (self.pickup_segment * RECT_HEIGHT)
-                            
-                            # Boundary checking
-                            new_y = max(self.upper_and_lower_bounds[0], 
-                                    min(new_y, self.upper_and_lower_bounds[1] - ship_height))
-                            
-                            # Update ship position
-                            ship_rect.topleft = (new_x, new_y)
-                            self.last_valid_position = (new_x, new_y)
-                            
-                            # Add to placed ships
-                            self.placed_ships.append(moving_ship)
-                            self.ships_to_place.pop(self.active_box)
-                            self.add_occupied()
-                            self.check_if_all_ships_were_placed()
-                        else:
-                            # Return to last valid position if placement is invalid
-                            ship_rect.topleft = self.last_valid_position
-                            
+                    # Check ships_to_place
                     else:
-                        # Horizontal placement logic
-                        actual_left_x = x - self.pickup_segment
-                        
-                        # Validate placement
-                        valid_placement = True
-                        for i in range(int(ship_width // RECT_WIDTH)):
-                            check_x = actual_left_x + i
-                            if (check_x < 0 or check_x >= len(self.occupancy_grid[0]) or 
-                                self.occupancy_grid[y][check_x] > 0):
-                                valid_placement = False
+                        for num, box in enumerate(self.ships_to_place):
+                            if box[0].collidepoint(event.pos):
+                                self.active_box = num
+                                self.picked_up_color = box[1]
+                                self.last_valid_position = box[0].topleft
+                                
+                                # Calculate which segment of the ship was clicked
+                                ship_rect = box[0]
+                                click_y = event.pos[1] - ship_rect.y
+                                ship_height = ship_rect.height
+                                
+                                # Calculate segment height (each segment is 1 unit tall)
+                                segment = min(int(click_y / RECT_HEIGHT), ship_height - 1)
+                                self.pickup_segment = segment
+                                
                                 break
+            
+            if event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1 and self.active_box is not None:
+                    square = self.determine_square(event.pos[0], event.pos[1])
+                    if square != -1:
+                        y, x = square  # grid coordinates
+                        moving_ship = self.ships_to_place[self.active_box]
+                        ship_rect = moving_ship[0]
+                        ship_height = ship_rect.height
+                        ship_width = ship_rect.width
                         
-                        if valid_placement:
-                            # Calculate new position
-                            new_x = self.placing_squares_left_top_corners[0][actual_left_x][1][0]
-                            new_y = self.placing_squares_left_top_corners[y][0][1][1]
+                        # Determine orientation (vertical if height > width)
+                        is_vertical = ship_height > ship_width
+                        
+                        if is_vertical:
+                            # Vertical placement logic
+                            actual_top_y = y - self.pickup_segment
                             
-                            # Boundary checking
-                            new_x = max(self.side_bounds[0],
-                                    min(new_x, self.side_bounds[1] - ship_width))
+                            # Validate placement
+                            valid_placement = True
+                            for i in range(int(ship_height // RECT_HEIGHT)):
+                                check_y = actual_top_y + i
+                                if (check_y < 0 or check_y >= len(self.occupancy_grid) or 
+                                    self.occupancy_grid[check_y][x] > 0):
+                                    valid_placement = False
+                                    break
                             
-                            # Update ship position
-                            ship_rect.topleft = (new_x, new_y)
-                            self.last_valid_position = (new_x, new_y)
-                            
-                            # Add to placed ships
-                            self.placed_ships.append(moving_ship)
-                            self.ships_to_place.pop(self.active_box)
-                            self.add_occupied()
-                            self.check_if_all_ships_were_placed()
+                            if valid_placement:
+                                # Calculate new position
+                                new_x = self.placing_squares_left_top_corners[0][x][1][0]
+                                new_y = self.placing_squares_left_top_corners[y][0][1][1] - (self.pickup_segment * RECT_HEIGHT)
+                                
+                                # Boundary checking
+                                new_y = max(self.upper_and_lower_bounds[0], 
+                                        min(new_y, self.upper_and_lower_bounds[1] - ship_height))
+                                
+                                # Update ship position
+                                ship_rect.topleft = (new_x, new_y)
+                                self.last_valid_position = (new_x, new_y)
+                                
+                                # Add to placed ships
+                                self.placed_ships.append(moving_ship)
+                                self.ships_to_place.pop(self.active_box)
+                                self.add_occupied()
+                                self.check_if_all_ships_were_placed()
+                            else:
+                                # Return to last valid position if placement is invalid
+                                ship_rect.topleft = self.last_valid_position
+                                
                         else:
-                            # Return to last valid position if placement is invalid
-                            ship_rect.topleft = self.last_valid_position
+                            # Horizontal placement logic
+                            actual_left_x = x - self.pickup_segment
                             
-                else:
-                    # Return to last valid position if not over a valid square
-                    self.ships_to_place[self.active_box][0].topleft = self.last_valid_position
-                
-                # Reset active box
-                self.active_box = None
-                self.redraw_all()
+                            # Validate placement
+                            valid_placement = True
+                            for i in range(int(ship_width // RECT_WIDTH)):
+                                check_x = actual_left_x + i
+                                if (check_x < 0 or check_x >= len(self.occupancy_grid[0]) or 
+                                    self.occupancy_grid[y][check_x] > 0):
+                                    valid_placement = False
+                                    break
+                            
+                            if valid_placement:
+                                # Calculate new position
+                                new_x = self.placing_squares_left_top_corners[0][actual_left_x][1][0]
+                                new_y = self.placing_squares_left_top_corners[y][0][1][1]
+                                
+                                # Boundary checking
+                                new_x = max(self.side_bounds[0],
+                                        min(new_x, self.side_bounds[1] - ship_width))
+                                
+                                # Update ship position
+                                ship_rect.topleft = (new_x, new_y)
+                                self.last_valid_position = (new_x, new_y)
+                                
+                                # Add to placed ships
+                                self.placed_ships.append(moving_ship)
+                                self.ships_to_place.pop(self.active_box)
+                                self.add_occupied()
+                                self.check_if_all_ships_were_placed()
+                            else:
+                                # Return to last valid position if placement is invalid
+                                ship_rect.topleft = self.last_valid_position
+                                
+                    else:
+                        # Return to last valid position if not over a valid square
+                        self.ships_to_place[self.active_box][0].topleft = self.last_valid_position
+                    
+                    # Reset active box
+                    self.active_box = None
+                    self.redraw_all()
 
-        if event.type == pygame.MOUSEMOTION:
-            if self.active_box is not None:
-                self.redraw_all()
-                self.ships_to_place[self.active_box][0].move_ip(event.rel)
-                pygame.draw.rect(screen, self.picked_up_color, 
-                            self.ships_to_place[self.active_box][0])
-                pygame.display.flip()
+            if event.type == pygame.MOUSEMOTION:
+                if self.active_box is not None:
+                    self.redraw_all()
+                    self.ships_to_place[self.active_box][0].move_ip(event.rel)
+                    pygame.draw.rect(screen, self.picked_up_color, 
+                                self.ships_to_place[self.active_box][0])
+                    pygame.display.flip()
    
     # Add ships' and neighbouring squares to the occupancy table
     def add_occupied(self):
@@ -560,7 +566,7 @@ class Board():
                     self.occupancy_grid[current_x][current_y] = ships_id
                 elif self.occupancy_grid[current_x][current_y] == 0:
                     self.occupancy_grid[current_x][current_y] = 9
-     
+                    
     # Check if all ships that are supposed to be placed were placed    
     def check_if_all_ships_were_placed(self):
         if TOTAL_SHIPS == len(self.placed_ships):
@@ -622,75 +628,76 @@ class Board():
 
     # Function to create two basic boards with letters and numbers representing coordinates written next to them      
     def create_playing_board(self):
-        self.player_squares_left_top_corners = []
-        self.upper_and_lower_bounds = []
-        self.side_bounds = []
-        # Create board for first player
-        for i in range(NUMBER_OF_RECTS):
-            letter_x = LEFT_MARGIN - 30
-            letter_y = TOP_MARGIN + i * (RECT_HEIGHT) + RECT_HEIGHT // 2
-            letter_surface = text_create(ALPHABET[i], 24, "white")
-            screen.blit(letter_surface, (letter_x, letter_y))
+        if not self.placing_ships:
+            self.player_squares_left_top_corners = []
+            self.upper_and_lower_bounds = []
+            self.side_bounds = []
+            # Create board for first player
+            for i in range(NUMBER_OF_RECTS):
+                letter_x = LEFT_MARGIN - 30
+                letter_y = TOP_MARGIN + i * (RECT_HEIGHT) + RECT_HEIGHT // 2
+                letter_surface = text_create(ALPHABET[i], 24, "white")
+                screen.blit(letter_surface, (letter_x, letter_y))
 
-            self.row = []
+                self.row = []
 
-            for j in range(NUMBER_OF_RECTS):
-                rect_x = LEFT_MARGIN + j * RECT_WIDTH + j
-                rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
-                rect = pygame.Rect(rect_x, rect_y, RECT_WIDTH, RECT_HEIGHT)
-                pygame.draw.rect(screen, "white", rect)
-                self.row.append([(i, j), (rect_x, rect_y)])
-                if (i == 0):
-                    number_x = LEFT_MARGIN + j * (RECT_WIDTH + 1) + RECT_WIDTH // 2
-                    number_y = TOP_MARGIN - 40
-                    number_surface = text_create(str(j+1), 24, "white")
-                    screen.blit(number_surface, (number_x, number_y))
+                for j in range(NUMBER_OF_RECTS):
+                    rect_x = LEFT_MARGIN + j * RECT_WIDTH + j
+                    rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
+                    rect = pygame.Rect(rect_x, rect_y, RECT_WIDTH, RECT_HEIGHT)
+                    pygame.draw.rect(screen, "white", rect)
+                    self.row.append([(i, j), (rect_x, rect_y)])
+                    if (i == 0):
+                        number_x = LEFT_MARGIN + j * (RECT_WIDTH + 1) + RECT_WIDTH // 2
+                        number_y = TOP_MARGIN - 40
+                        number_surface = text_create(str(j+1), 24, "white")
+                        screen.blit(number_surface, (number_x, number_y))
+                    
+                    # Add left bound and top bound to the bounds arrays    
+                    if (i == 0 and j == 0):
+                        self.upper_and_lower_bounds.append(rect_y)
+                        self.side_bounds.append(rect_x)
+                    # Add right bound and lower bound to the bounds arrays
+                    if (i == NUMBER_OF_RECTS - 1 and j == NUMBER_OF_RECTS - 1):
+                        self.upper_and_lower_bounds.append(rect_y + RECT_HEIGHT)
+                        self.side_bounds.append(rect_x + RECT_WIDTH)
+                self.player_squares_left_top_corners.append(self.row)
                 
-                # Add left bound and top bound to the bounds arrays    
-                if (i == 0 and j == 0):
-                    self.upper_and_lower_bounds.append(rect_y)
-                    self.side_bounds.append(rect_x)
-                # Add right bound and lower bound to the bounds arrays
-                if (i == NUMBER_OF_RECTS - 1 and j == NUMBER_OF_RECTS - 1):
-                    self.upper_and_lower_bounds.append(rect_y + RECT_HEIGHT)
-                    self.side_bounds.append(rect_x + RECT_WIDTH)
-            self.player_squares_left_top_corners.append(self.row)
-            
 
-        # Create board for second player
-        for i in range(NUMBER_OF_RECTS):
-            self.row = []
-            self.rect_row = []
-            letter_x = LEFT_MARGIN - 30 + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH
-            letter_y = TOP_MARGIN + i * (RECT_HEIGHT) + RECT_HEIGHT // 2
-            letter_surface = text_create(ALPHABET[i], 24, "white")
-            screen.blit(letter_surface, (letter_x, letter_y))
-            for j in range(NUMBER_OF_RECTS):
-                rect_x = LEFT_MARGIN + j * RECT_WIDTH + j + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH
-                rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
-                rect = pygame.Rect(rect_x, rect_y , RECT_WIDTH, RECT_HEIGHT)
-                self.determine_enemy_square_color(rect_x, rect_y)
-                self.row.append([(i, j), (rect_x, rect_y)])
-                if len(self.enemy_squares_rects) < NUMBER_OF_RECTS ** 2:
-                    self.enemy_squares_rects.append(rect)
+            # Create board for second player
+            for i in range(NUMBER_OF_RECTS):
+                self.row = []
+                self.rect_row = []
+                letter_x = LEFT_MARGIN - 30 + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH
+                letter_y = TOP_MARGIN + i * (RECT_HEIGHT) + RECT_HEIGHT // 2
+                letter_surface = text_create(ALPHABET[i], 24, "white")
+                screen.blit(letter_surface, (letter_x, letter_y))
+                for j in range(NUMBER_OF_RECTS):
+                    rect_x = LEFT_MARGIN + j * RECT_WIDTH + j + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH
+                    rect_y = TOP_MARGIN + i * RECT_HEIGHT + i
+                    rect = pygame.Rect(rect_x, rect_y , RECT_WIDTH, RECT_HEIGHT)
+                    self.determine_enemy_square_color(rect_x, rect_y)
+                    self.row.append([(i, j), (rect_x, rect_y)])
+                    if len(self.enemy_squares_rects) < NUMBER_OF_RECTS ** 2:
+                        self.enemy_squares_rects.append(rect)
 
-                if (i == 0):
-                    number_x = LEFT_MARGIN + j * (RECT_WIDTH + 1) + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH + RECT_WIDTH // 2
-                    number_y = TOP_MARGIN - 40
-                    number_surface = text_create(str(j+1), 24, "white")
-                    screen.blit(number_surface, (number_x, number_y))
-            if len(self.enemy_squares_left_top_corners) < NUMBER_OF_RECTS:
-                self.enemy_squares_left_top_corners.append(self.row)
+                    if (i == 0):
+                        number_x = LEFT_MARGIN + j * (RECT_WIDTH + 1) + DISTANCE_BETWEEN_BOARDS + NUMBER_OF_RECTS * RECT_WIDTH + RECT_WIDTH // 2
+                        number_y = TOP_MARGIN - 40
+                        number_surface = text_create(str(j+1), 24, "white")
+                        screen.blit(number_surface, (number_x, number_y))
+                if len(self.enemy_squares_left_top_corners) < NUMBER_OF_RECTS:
+                    self.enemy_squares_left_top_corners.append(self.row)
 
-        turn_x = SCREEN_WIDTH // 2 - 100
-        turn_y = TOP_MARGIN - 75
-        if self.whose_turn == 0:
-            turn_surface = text_create("Your turn", 36, "white")
-        else:
-            turn_surface = text_create("Enemy turn", 36, "white")
-        screen.blit(turn_surface, (turn_x, turn_y))
+            turn_x = SCREEN_WIDTH // 2 - 100
+            turn_y = TOP_MARGIN - 75
+            if self.whose_turn == 0:
+                turn_surface = text_create("Your turn", 36, "white")
+            else:
+                turn_surface = text_create("Enemy turn", 36, "white")
+            screen.blit(turn_surface, (turn_x, turn_y))
 
-        pygame.display.flip()
+            pygame.display.flip()
 
     # Determine at which cooridantes is the square located
     def determine_coordinates(self, x, y):
@@ -698,18 +705,18 @@ class Board():
 
     # Function to draw ships to the player board
     def draw_player_ships(self):
+        if not self.placing_ships:
+            for ship in self.placed_ships_coordinates:
+                rect = ship[0][0]
+                ship_color = ship[0][1]
+                ship_coordinates = ship[1]
+                
+                new_position = self.determine_coordinates(ship_coordinates[0], ship_coordinates[1])
+                new_rect = pygame.rect.Rect(new_position[0],new_position[1], rect.width, rect.height)
+                
+                pygame.draw.rect(screen, ship_color, new_rect)
 
-        for ship in self.placed_ships_coordinates:
-            rect = ship[0][0]
-            ship_color = ship[0][1]
-            ship_coordinates = ship[1]
-            
-            new_position = self.determine_coordinates(ship_coordinates[0], ship_coordinates[1])
-            new_rect = pygame.rect.Rect(new_position[0],new_position[1], rect.width, rect.height)
-            
-            pygame.draw.rect(screen, ship_color, new_rect)
-
-        pygame.display.flip()
+            pygame.display.flip()
     
     # Function to determine what color should be enemy square colored
     def determine_enemy_square_color(self, x, y):
@@ -746,16 +753,17 @@ class Board():
     
     # Function to select squares on enemy board
     def select_square(self, event):
-        if self.whose_turn == 0:
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    for box in self.enemy_squares_rects:
-                        if box.collidepoint(event.pos):
-                            which_square = self.determine_square(event.pos[0], event.pos[1])
-                            square_x, square_y = which_square[0], which_square[1]
-                            self.selected_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
-                                for _ in range(NUMBER_OF_RECTS)]
-                            self.selected_tiles[square_x][square_y] = 1
+        if not self.placing_ships:
+            if self.whose_turn == 0:
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        for box in self.enemy_squares_rects:
+                            if box.collidepoint(event.pos):
+                                which_square = self.determine_square(event.pos[0], event.pos[1])
+                                square_x, square_y = which_square[0], which_square[1]
+                                self.selected_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] 
+                                    for _ in range(NUMBER_OF_RECTS)]
+                                self.selected_tiles[square_x][square_y] = 1
 
     # Function to show the button that confirms the placement of ships 
     def show_attack_button(self):
