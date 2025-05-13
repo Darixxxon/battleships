@@ -52,7 +52,7 @@ class Board():
         self.clock = pygame.time.Clock()
         self.config = configparser.ConfigParser()
         self.config.read("config.ini")
-        self.background = pygame.image.load("background.jpg")
+        #self.background = pygame.image.load("battleships/background.jpg")
         
         
     # Create a surface with given width, height and color
@@ -152,19 +152,20 @@ class Board():
                     else:
                         client_port_text += event.unicode
         
-            self.screen.blit(self.background, (0, 0))
+            #self.screen.blit(self.background, (0, 0))
+            self.screen.fill((0, 0, 0))
             self.screen.blit(title_surface, title_surface.get_rect(center=(750, 150)))
-            self.screen.blit(self.text_create("Choose your function"), self.text_create("Choose your function").get_rect(center=(750, 150)))
+            self.screen.blit(self.text_create("Choose your role"), self.text_create("Choose your function").get_rect(center=(790, 150)))
             
             self.screen.blit(self.surface_create(200, 75), self.surface_create(200, 75).get_rect(center=(375, 250)))
             self.screen.blit(self.text_create("Server"), self.text_create("Server").get_rect(center=(375, 250)))
             
             self.screen.blit(server_host_surface, server_host_surface.get_rect(center=(375, 350)))
-            self.screen.blit(self.text_create("HOST:"), self.text_create("HOST:").get_rect(center=(275, 350)))
+            self.screen.blit(self.text_create("HOST:"), self.text_create("HOST:").get_rect(center=(285, 350)))
             self.screen.blit(self.text_create(server_host_text), self.text_create(server_host_text).get_rect(midleft=(325, 350)))
             
             self.screen.blit(server_port_surface, server_port_surface.get_rect(center=(375, 450)))
-            self.screen.blit(self.text_create("PORT:"), self.text_create("PORT:").get_rect(center=(275, 450)))
+            self.screen.blit(self.text_create("PORT:"), self.text_create("PORT:").get_rect(center=(285, 450)))
             self.screen.blit(self.text_create(server_port_text), self.text_create(server_port_text).get_rect(midleft=(325, 450)))
             
             self.screen.blit(server_choose_surface, server_choose_surface.get_rect(center=(375, 550)))
@@ -176,11 +177,11 @@ class Board():
             self.screen.blit(self.text_create("Client"), self.text_create("Client").get_rect(center=(1125, 250)))
             
             self.screen.blit(client_host_surface, client_host_surface.get_rect(center=(1125, 350)))
-            self.screen.blit(self.text_create("HOST:"), self.text_create("HOST:").get_rect(center=(1025, 350)))
+            self.screen.blit(self.text_create("HOST:"), self.text_create("HOST:").get_rect(center=(1035, 350)))
             self.screen.blit(self.text_create(client_host_text), self.text_create(client_host_text).get_rect(midleft=(1075, 350)))
             
             self.screen.blit(client_port_surface, client_port_surface.get_rect(center=(1125, 450)))
-            self.screen.blit(self.text_create("PORT:"), self.text_create("PORT:").get_rect(center=(1025, 450)))
+            self.screen.blit(self.text_create("PORT:"), self.text_create("PORT:").get_rect(center=(1035, 450)))
             self.screen.blit(self.text_create(client_port_text), self.text_create(client_port_text).get_rect(midleft=(1075, 450)))
             
             self.screen.blit(client_choose_surface, client_choose_surface.get_rect(center=(1125, 550)))
@@ -197,8 +198,8 @@ class Board():
 
     # Choosing the layout of the ships
     def choose_layout(self): 
-        self.screen.fill((0, 0, 0))
-        self.screen.blit(self.background, (0, 0))
+        self.screen.fill((0, 0, 0))  # Tylko raz na początku
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN:
@@ -214,11 +215,10 @@ class Board():
                     self.place_ships(event)
                     self.show_confirm_button()
                     self.confirm_button_pressed(event)
-                    
-                else:
-                    return
-                    
-                pygame.display.flip()   
+                
+                # Zaktualizuj planszę po zakończeniu fazy rozmieszczania statków
+                pygame.display.flip()  # Tylko po rzeczywistej zmianie
+
           
     #TODO dodac funkcję która rysuje ataki przeciwnika
     def draw_enemy_hits(self):
@@ -228,11 +228,14 @@ class Board():
      
     # Function to draw board           
     def draw_board(self):
-        self.screen.fill((0, 0, 0))
-        self.screen.blit(self.background, (0, 0))
+    # Sprawdzenie, czy plansza wymaga odświeżenia
         self.create_playing_board()
         self.draw_player_ships()
         self.draw_enemy_hits()
+
+    # Płynne odświeżanie tylko raz po zmianach
+    #pygame.display.flip()  # Zamiast pygame.display.update(), bo flip aktualizuje cały ekran
+
     
     # Function with mechanic of attacking 
     def battle(self):
@@ -629,7 +632,8 @@ class Board():
     # Redraw eveyrthing to the screen
     def redraw_all(self):
         self.screen.fill(BACKGROUND_COLOR)
-        self.screen.blit(self.background, (0, 0))
+        #self.screen.blit(self.background, (0, 0))
+        self.screen.fill((0, 0, 0))
         self.create_positioning_board()
         # Draw placed ships first
         for ship in self.placed_ships:

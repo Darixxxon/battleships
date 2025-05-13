@@ -1,7 +1,8 @@
-from board import *
 import socket
+import pygame
+import board
 
-def main_server(board, HOST, PORT = 12345):
+def main_server(board, HOST, PORT=12345):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, int(PORT)))
     server_socket.listen(1)
@@ -15,12 +16,17 @@ def main_server(board, HOST, PORT = 12345):
     board = board
     
     board.choose_layout()
+
+    # Initialize Pygame and Clock for controlling frame rate
+    pygame.init()
+    clock = pygame.time.Clock()  # Set up the clock to control frame rate
     
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
+
         if client_rdy == "False":
             try:
                 conn.send("True".encode())
@@ -34,7 +40,9 @@ def main_server(board, HOST, PORT = 12345):
             except socket.timeout:
                 pass
 
-        
+        # Limit the frame rate to 60 FPS
+        clock.tick(60)
+
     # Client starts first
     board.make_turn()
     again_move = False
@@ -44,15 +52,16 @@ def main_server(board, HOST, PORT = 12345):
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
+
         # Client attacks
-        # When server doeasnt have another move and there is not server turn
+        # When server doesn't have another move and it's not the server's turn
         if not again_move and board.whose_turn == 1:
             try:
-                #Waiting for move from client
+                # Waiting for move from client
                 client_move = conn.recv(1024).decode()
                 print("Received move from client")
                 client_move = (int(client_move[0]), int(client_move[1]))
-                #Check if the move is hit
+                # Check if the move is a hit
                 hit = board.receiving_attack(client_move)
                 if hit == True:
                     conn.send("True".encode())
@@ -61,19 +70,20 @@ def main_server(board, HOST, PORT = 12345):
                 else:
                     conn.send("False".encode())
                     print("Answer sent")
-                    #Turn change
+                    # Turn change
                     board.make_turn()
                     enemy_again_move = False
             except socket.timeout:
                 pass
             
         # Server attacks
-        # When server has another move and there is server turn
+        # When server has another move and it's the server's turn
         if not enemy_again_move and board.whose_turn == 0:
             server_move = board.battle()
             server_move = str(server_move[0]) + str(server_move[1])
             print("Sending move to client")
             conn.send(server_move.encode())
+
             while True:
                 for event in pygame.event.get():
                     if event.type == pygame.QUIT:
@@ -90,13 +100,15 @@ def main_server(board, HOST, PORT = 12345):
                     else:
                         board.attacked_tiles[int(server_move[0])][int(server_move[1])] = 1
                         again_move = False
-                        #Turn change
+                        # Turn change
                         board.make_turn()
                         board.draw_board()
                         break
                 except socket.timeout:
-                    pass 
+                    pass
+
+        # Limit the frame rate to 60 FPS
+        clock.tick(60)
 
     conn.close()
     server_socket.close()
-
