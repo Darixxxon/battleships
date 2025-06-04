@@ -66,7 +66,7 @@ def main_client(board, HOST, PORT = 12345):
                         again_move = False
                         #Turn change
                         board.make_turn()
-                        board.draw_board()
+                        board._redraw_all()
                         break
                 except socket.timeout:
                     pass

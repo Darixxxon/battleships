@@ -92,11 +92,10 @@ def main_server(board, HOST, PORT = 12345):
                         again_move = False
                         #Turn change
                         board.make_turn()
-                        board.draw_board()
+                        board._redraw_all()
                         break
                 except socket.timeout:
                     pass 
 
     conn.close()
     server_socket.close()
-
