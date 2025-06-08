@@ -178,10 +178,11 @@ class Board:
         self.screen.blit(choose_surface, (x_pos - 100, 525))
         self.screen.blit(self._create_text("Choose"), (x_pos - 75, 525))
 
+
     # --------------------------
     # Ship Placement Phase
     # --------------------------
-    
+
     def choose_layout(self):
         """Handle the ship placement phase of the game."""
         while True:
@@ -479,7 +480,7 @@ class Board:
     def _redraw_all(self):
         """Redraw all game elements."""
         self.screen.fill(BACKGROUND_COLOR)
-        
+
         # Draw unplaced ships
         for i, ship in enumerate(self.ships_to_place):
             if i != self.active_box and not ship[2]:
