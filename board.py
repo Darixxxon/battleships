@@ -17,6 +17,11 @@ class Board:
         self.placing_ships = True
         self.all_ships_placed = False
         
+        # Error messages variables
+        self.message = ""
+        self.message_time = 0
+        self.message_duration = 2000
+        
         # UI elements
         self.active_box = None
         self.picked_up_color = None
@@ -32,6 +37,7 @@ class Board:
         self.attacked_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] for _ in range(NUMBER_OF_RECTS)]
         self.enemy_attacked_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] for _ in range(NUMBER_OF_RECTS)]
         self.selected_tiles = [[0 for _ in range(NUMBER_OF_RECTS)] for _ in range(NUMBER_OF_RECTS)]
+        self.occupancy_grid = [[0 for _ in range(NUMBER_OF_RECTS)] for _ in range(NUMBER_OF_RECTS)]
         
         # Ship data
         self.ships_to_place = []
@@ -66,16 +72,35 @@ class Board:
         surface.fill(color)
         return surface
 
+
     def _create_text(self, text, font_size=36, color=(0, 0, 0)):
         """Create a text surface with given parameters."""
         font = pygame.font.SysFont('Arial', font_size)
         return font.render(text, True, color)
+
 
     def _create_rect(self, x, y, width, height, color=(255, 255, 255)):
         """Create and draw a rectangle on the screen."""
         rect = pygame.Rect(x, y, width, height)
         pygame.draw.rect(self.screen, color, rect)
         return rect
+    
+    
+    def _show_message(self, message, color):
+        """Display an error message on the screen."""
+        self.message = message
+        self.message_color = color
+        self.message_time = pygame.time.get_ticks()
+        
+        
+    def _draw_message(self):
+        """Draw the current error message if it hasn't expired."""
+        current_time = pygame.time.get_ticks()
+        if self.message and current_time - self.message_time < self.message_duration:
+            surface = self._create_text(self.message, 24, self.message_color)
+            self.screen.blit(surface, (SCREEN_WIDTH // 2 - surface.get_width() // 2, SCREEN_HEIGHT - 100))
+        elif self.message:
+            self.message = ""
 
     # --------------------------
     # Game State Management
@@ -84,6 +109,7 @@ class Board:
     def get_game_stage(self):
         """Return the current game stage."""
         return self.game_stage
+
 
     def switch_turn(self):
         """Switch turns between player and enemy."""
@@ -129,6 +155,8 @@ class Board:
 
             self.screen.blit(self._create_text("Server", 36, "black"), (server_button.x + 90, server_button.y + 30))
             self.screen.blit(self._create_text("Client", 36, "black"), (client_button.x + 90, client_button.y + 30))
+            
+            self._draw_message()
 
             pygame.display.flip()
 
@@ -141,6 +169,7 @@ class Board:
                     if server_button.collidepoint(event.pos):
                         clicked_button = "Server"
                         click_time = pygame.time.get_ticks()
+                        self._show_message("Server started. Waiting for client to join.", (0,255,0))
                     elif client_button.collidepoint(event.pos):
                         clicked_button = "Client"
                         click_time = pygame.time.get_ticks()
@@ -155,7 +184,6 @@ class Board:
                     host = self.config.get('CLIENT', 'HOST_IP')
                     port = self.config.get('CLIENT', 'HOST_PORT')
                     return ("Client", host, port)
-
 
 
     def _draw_menu_section(self, title, host_text, port_text, host_surface, port_surface, choose_surface, x_pos):
@@ -198,6 +226,7 @@ class Board:
                 
                 pygame.display.flip()
 
+
     def _handle_placement_phase(self, event):
         """Handle events during the ship placement phase."""
         self._create_positioning_board()
@@ -206,6 +235,7 @@ class Board:
         self._place_ships(event)
         self._show_confirm_button()
         self._confirm_button_pressed(event)
+
 
     def _create_positioning_board(self):
         """Create the board for ship placement."""
@@ -276,7 +306,7 @@ class Board:
         
         rect = pygame.Rect(x, y, width, height)
         self.ships_to_place.append([rect, params[0], False])  # [rect, color, is_placed]
-
+        
 
     def _create_ships_to_place(self):
         if not self.ships_to_place:
@@ -308,6 +338,7 @@ class Board:
             if not ship[2]:  # Only draw if not placed
                 pygame.draw.rect(self.screen, ship[1], ship[0])
 
+
     def _place_ships(self, event):
         """Handle ship placement logic."""
         if event.type == pygame.KEYDOWN and self.active_box is not None and event.key == pygame.K_q:
@@ -323,15 +354,9 @@ class Board:
         if event.type == pygame.MOUSEMOTION and self.active_box is not None:
             self._handle_ship_drag(event)
 
-    # def _rotate_ship(self):
-    #     """Rotate the currently active ship."""
-    #     ship_rect = self.ships_to_place[self.active_box][0]
-    #     ship_rect.width, ship_rect.height = ship_rect.height, ship_rect.width
-    #     ship_rect.x -= (ship_rect.height - ship_rect.width) // 2
-    #     ship_rect.y -= (ship_rect.width - ship_rect.height) // 2
-    #     self._redraw_all()
 
     def _rotate_ship(self):
+        """ Rotate currently active ship """
         ship_rect = self.ships_to_place[self.active_box][0]
         
         # Store old width and height
@@ -360,19 +385,6 @@ class Board:
         self._redraw_all()
 
 
-    # def _handle_ship_pickup(self, event):
-    #     """Handle picking up a ship for placement."""
-    #     for num, ship in enumerate(self.ships_to_place):
-    #         if not ship[2] and ship[0].collidepoint(event.pos):
-    #             self.active_box = num
-    #             self.picked_up_color = ship[1]
-    #             self.last_valid_position = ship[0].topleft
-                
-    #             # Calculate which segment was clicked
-    #             ship_rect = ship[0]
-    #             click_y = event.pos[1] - ship_rect.y
-    #             self.pickup_segment = min(int(click_y / RECT_HEIGHT), ship_rect.height - 1)
-    #             break
     def _handle_ship_pickup(self, event):
         for num, ship in enumerate(self.ships_to_place):
             if not ship[2] and ship[0].collidepoint(event.pos):
@@ -397,10 +409,14 @@ class Board:
         mouse_pos = pygame.mouse.get_pos()
         square = self._determine_square(mouse_pos[0], mouse_pos[1])
         
-        if square != -1 and self._is_valid_placement(ship, square):
-            self._finalize_ship_placement(ship, square)
-        else:
+        if square == -1:
+            self._show_message("Ship was not placed on the board. Try again in correct spot.", (255, 0, 0))
             ship[0].topleft = self.last_valid_position
+        elif not self._is_valid_placement(ship, square):
+            self._show_message("Ship was not placed in correct place. Try again in correct spot.", (255, 0, 0))
+            ship[0].topleft = self.last_valid_position
+        else:
+            self._finalize_ship_placement(ship, square)
             
         self.active_box = None
         self._redraw_all()
@@ -410,20 +426,19 @@ class Board:
         grid_y, grid_x = square
         ship_rect = ship[0]
         is_vertical = ship_rect.height > ship_rect.width
-        
         if is_vertical:
             ship_length = int(ship_rect.height // RECT_HEIGHT)
             start_y = grid_y - self.pickup_segment
             return all(
                 0 <= start_y + i < NUMBER_OF_RECTS and 
-                self.player_grid[start_y + i][grid_x] == 0
+                self.occupancy_grid[start_y + i][grid_x] == 0
                 for i in range(ship_length))
         else:
             ship_length = int(ship_rect.width // RECT_WIDTH)
             start_x = grid_x - self.pickup_segment
             return all(
                 0 <= start_x + i < NUMBER_OF_RECTS and 
-                self.player_grid[grid_y][start_x + i] == 0
+                self.occupancy_grid[grid_y][start_x + i] == 0
                 for i in range(ship_length))
 
     def _finalize_ship_placement(self, ship, square):
@@ -460,11 +475,20 @@ class Board:
                 y = grid_y + (i if is_vertical else 0) - (self.pickup_segment if is_vertical else 0)
                 x = grid_x + (j if is_vertical else i) - (0 if is_vertical else self.pickup_segment)
                 
-                if 0 <= y < NUMBER_OF_RECTS and 0 <= x < NUMBER_OF_RECTS:
+                if (0 <= y < NUMBER_OF_RECTS and 0 <= x < NUMBER_OF_RECTS):
+                    if 0 <= i < ship_length and j == 0:
+                        self.player_grid[y][x] = ship_id
+                        self.occupancy_grid[y][x] = ship_id
+                    elif self.player_grid[y][x] == 0:
+                        self.occupancy_grid[y][x] = 9
+                
+                
+                """if 0 <= y < NUMBER_OF_RECTS and 0 <= x < NUMBER_OF_RECTS:
                     if 0 <= i < ship_length and j == 0:
                         self.player_grid[y][x] = ship_id
                     elif self.player_grid[y][x] == 0:
                         self.player_grid[y][x] = 9  # Mark as buffer zone
+                        """
 
     def _check_all_ships_placed(self):
         """Check if all ships have been placed."""
@@ -480,6 +504,8 @@ class Board:
     def _redraw_all(self):
         """Redraw all game elements."""
         self.screen.fill(BACKGROUND_COLOR)
+        
+        self._draw_message()
 
         # Draw unplaced ships
         for i, ship in enumerate(self.ships_to_place):
@@ -598,6 +624,7 @@ class Board:
     def _draw_battle_screen(self):
         """Draw the battle screen with both player and enemy boards."""
         self.screen.fill(BACKGROUND_COLOR)
+        self._draw_message()
         self._create_playing_board()
         self._draw_player_ships()
         self._draw_enemy_hits()
