@@ -466,29 +466,25 @@ class Board:
         self._check_all_ships_placed()
 
     def _update_occupancy_grid(self, ship, grid_y, grid_x, is_vertical):
-        """Update the grid to mark occupied squares."""
+        """Update the grid to mark occupied squares and the surrounding area."""
         ship_id = self._get_ship_id(ship[1])
         ship_length = int(ship[0].height // RECT_HEIGHT) if is_vertical else int(ship[0].width // RECT_WIDTH)
-        
+
         for i in range(-1, ship_length + 1):
-            for j in range(-1, 2):  # -1, 0, 1
-                y = grid_y + (i if is_vertical else 0) - (self.pickup_segment if is_vertical else 0)
+            for j in range(-1, 2):  # Covers left/right or above/below
+                y = grid_y + (i if is_vertical else j) - (self.pickup_segment if is_vertical else 0)
                 x = grid_x + (j if is_vertical else i) - (0 if is_vertical else self.pickup_segment)
-                
-                if (0 <= y < NUMBER_OF_RECTS and 0 <= x < NUMBER_OF_RECTS):
+
+                if 0 <= y < NUMBER_OF_RECTS and 0 <= x < NUMBER_OF_RECTS:
                     if 0 <= i < ship_length and j == 0:
+                        # Main ship body
                         self.player_grid[y][x] = ship_id
                         self.occupancy_grid[y][x] = ship_id
-                    elif self.player_grid[y][x] == 0:
-                        self.occupancy_grid[y][x] = 9
+                    else:
+                        # Surrounding area
+                        if self.occupancy_grid[y][x] == 0:
+                            self.occupancy_grid[y][x] = 9
                 
-                
-                """if 0 <= y < NUMBER_OF_RECTS and 0 <= x < NUMBER_OF_RECTS:
-                    if 0 <= i < ship_length and j == 0:
-                        self.player_grid[y][x] = ship_id
-                    elif self.player_grid[y][x] == 0:
-                        self.player_grid[y][x] = 9  # Mark as buffer zone
-                        """
 
     def _check_all_ships_placed(self):
         """Check if all ships have been placed."""
