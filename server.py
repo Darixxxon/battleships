@@ -15,8 +15,7 @@ def main_server(board, HOST, PORT=12345):
     client_rdy = "False"
     board = board
     
-    conn.setblocking(False)
-    board.choose_layout(conn)
+    board.choose_layout()
 
     # Initialize Pygame and Clock for controlling frame rate
     pygame.init()
@@ -32,12 +31,7 @@ def main_server(board, HOST, PORT=12345):
             try:
                 conn.send("True".encode())
                 # Waiting for confirmation from client
-                data = conn.recv(1024)
-                if not data:
-                    print("Client has disconnected.")
-                    pygame.quit()
-                    exit()
-                client_rdy = data.decode()
+                client_rdy = conn.recv(1024).decode()
                 if client_rdy:
                     print("Client is ready!")
                     break
@@ -64,12 +58,7 @@ def main_server(board, HOST, PORT=12345):
         if not again_move and board.whose_turn == 1:
             try:
                 # Waiting for move from client
-                client_move = conn.recv(1024)
-                if not client_move:
-                    print("Enemy has disconnected.")
-                    pygame.quit()
-                    exit()
-                client_move = client_move.decode()
+                client_move = conn.recv(1024).decode()
                 print("Received move from client")
                 client_move = (int(client_move[0]), int(client_move[1]))
                 # Check if the move is a hit
@@ -84,11 +73,7 @@ def main_server(board, HOST, PORT=12345):
                     # Turn change
                     board.make_turn()
                     enemy_again_move = False
-            except ConnectionResetError:
-                print("Przeciwnik się rozłączył (ConnectionResetError)!")
-                pygame.quit()
-                exit()
-            except (socket.timeout, ConnectionAbortedError):
+            except socket.timeout:
                 pass
             
         # Server attacks
@@ -106,15 +91,8 @@ def main_server(board, HOST, PORT=12345):
                         exit()
                 try:
                     print("Waiting for answer from client...")
-                    data = conn.recv(1024)
-                    if not data:
-                        print("Client has disconnected.")
-                        pygame.quit()
-                        exit()
-                        
-                    hit = data.decode()
+                    hit = conn.recv(1024).decode()
                     print("Received answer")
-                    
                     if hit == "True":
                         board.attacked_tiles[int(server_move[0])][int(server_move[1])] = 2
                         again_move = True
@@ -126,10 +104,6 @@ def main_server(board, HOST, PORT=12345):
                         board.make_turn()
                         board._redraw_all()
                         break
-                except ConnectionAbortedError:
-                    print("Client has disconnected (ConnectionAbortedError)!")
-                    pygame.quit()
-                    exit()
                 except socket.timeout:
                     pass
 
@@ -137,4 +111,3 @@ def main_server(board, HOST, PORT=12345):
         clock.tick(60)
 
     conn.close()
-

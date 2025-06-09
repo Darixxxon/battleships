@@ -169,13 +169,16 @@ class Board:
                     if server_button.collidepoint(event.pos):
                         clicked_button = "Server"
                         click_time = pygame.time.get_ticks()
+                        self.screen.fill((0, 0, 0))
                         self._show_message("Server started. Waiting for client to join.", (0,255,0))
                     elif client_button.collidepoint(event.pos):
                         clicked_button = "Client"
+                        self.screen.fill((0, 0, 0))
                         click_time = pygame.time.get_ticks()
 
             # After brief delay, return selection
             if clicked_button and pygame.time.get_ticks() - click_time >= 150:
+                self.screen.fill((0, 0, 0))
                 if clicked_button == "Server":
                     host = self.config.get('SERVER', 'HOST_IP')
                     port = self.config.get('SERVER', 'HOST_PORT')
@@ -211,7 +214,7 @@ class Board:
     # Ship Placement Phase
     # --------------------------
 
-    def choose_layout(self, conn):
+    def choose_layout(self):
         """Handle the ship placement phase of the game."""
         while True:
             for event in pygame.event.get():
@@ -225,19 +228,6 @@ class Board:
                     return
                 
                 pygame.display.flip()
-            try:
-                data = conn.recv(1024)
-                if not data:
-                    print("Enemy has disconnected during layout phase.")
-                    pygame.quit()
-                    exit()
-            except BlockingIOError:
-                pass  # brak danych — OK
-            except (ConnectionResetError, ConnectionAbortedError):
-                print("Enemy has disconnected (ConnectionResetError/AbortedError) during layout phase.")
-                pygame.quit()
-                exit()
-
 
 
     def _handle_placement_phase(self, event):
