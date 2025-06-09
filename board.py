@@ -211,7 +211,7 @@ class Board:
     # Ship Placement Phase
     # --------------------------
 
-    def choose_layout(self):
+    def choose_layout(self, conn):
         """Handle the ship placement phase of the game."""
         while True:
             for event in pygame.event.get():
@@ -225,6 +225,19 @@ class Board:
                     return
                 
                 pygame.display.flip()
+            try:
+                data = conn.recv(1024)
+                if not data:
+                    print("Enemy has disconnected during layout phase.")
+                    pygame.quit()
+                    exit()
+            except BlockingIOError:
+                pass  # brak danych — OK
+            except (ConnectionResetError, ConnectionAbortedError):
+                print("Enemy has disconnected (ConnectionResetError/AbortedError) during layout phase.")
+                pygame.quit()
+                exit()
+
 
 
     def _handle_placement_phase(self, event):
