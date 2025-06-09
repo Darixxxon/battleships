@@ -45,6 +45,8 @@ def main_server(board, HOST, PORT=12345):
                     print("Client is not ready...")
             except socket.timeout:
                 pass
+            except BlockingIOError:
+                pass 
 
         # Limit the frame rate to 60 FPS
         clock.tick(60)
@@ -90,6 +92,8 @@ def main_server(board, HOST, PORT=12345):
                 exit()
             except (socket.timeout, ConnectionAbortedError):
                 pass
+            except BlockingIOError:
+                pass 
             
         # Server attacks
         # When server has another move and it's the server's turn
@@ -126,12 +130,11 @@ def main_server(board, HOST, PORT=12345):
                         board.make_turn()
                         board._redraw_all()
                         break
-                except ConnectionAbortedError:
-                    print("Client has disconnected (ConnectionAbortedError)!")
-                    pygame.quit()
-                    exit()
                 except socket.timeout:
                     pass
+                except BlockingIOError:
+                    pass  
+                
 
         # Limit the frame rate to 60 FPS
         clock.tick(60)

@@ -1,4 +1,5 @@
 import pygame
+import select
 import configparser
 from constants import (
     ATTACK_BUTTON_X, ATTACK_BUTTON_Y, CONFIRM_BUTTON_X, CONFIRM_BUTTON_Y,
@@ -212,7 +213,6 @@ class Board:
     # --------------------------
 
     def choose_layout(self, conn):
-        """Handle the ship placement phase of the game."""
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -225,18 +225,20 @@ class Board:
                     return
                 
                 pygame.display.flip()
-            try:
-                data = conn.recv(1024)
-                if not data:
+
+            # tylko jeśli są dane, próbuj je odebrać
+            readable, _, _ = select.select([conn], [], [], 0)
+            if conn in readable:
+                try:
+                    data = conn.recv(1024)
+                    if not data:
+                        print("Enemy has disconnected during layout phase.")
+                        pygame.quit()
+                        exit()
+                except (ConnectionResetError, ConnectionAbortedError):
                     print("Enemy has disconnected during layout phase.")
                     pygame.quit()
                     exit()
-            except BlockingIOError:
-                pass  # brak danych — OK
-            except (ConnectionResetError, ConnectionAbortedError):
-                print("Enemy has disconnected (ConnectionResetError/AbortedError) during layout phase.")
-                pygame.quit()
-                exit()
 
 
 

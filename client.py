@@ -27,7 +27,6 @@ def main_client(board, HOST, PORT=12345):
         if server_rdy == "False":
             try:
                 client_socket.send("True".encode())
-                # Waiting for confirmation from server
                 data = client_socket.recv(1024)
                 if not data:
                     print("Server has disconnected.")
@@ -39,14 +38,11 @@ def main_client(board, HOST, PORT=12345):
                     break
                 else:
                     print("Server is not ready...")
-            except ConnectionAbortedError:
-                print("Server has disconnected (ConnectionAbortedError)!")
-                pygame.quit()
-                exit()
             except socket.timeout:
                 pass
+            except BlockingIOError:
+                pass  
 
-        # Limit the frame rate to 60 FPS
         clock.tick(60)
 
     again_move = False
@@ -92,12 +88,10 @@ def main_client(board, HOST, PORT=12345):
                         board.make_turn()
                         board._redraw_all()
                         break
-                except ConnectionAbortedError:
-                    print("Server has disconnected (ConnectionAbortedError)!")
-                    pygame.quit()
-                    exit()
                 except socket.timeout:
                     pass
+                except BlockingIOError:
+                    pass 
 
         # Server attacks
         # When client doesn't have another move and it's not the client's turn
